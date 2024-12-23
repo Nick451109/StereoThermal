@@ -11,3 +11,4 @@ numpy==1.26.4
 tqdm
 tifffile
 scikit-image
+timm==0.5.4

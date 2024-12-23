@@ -1,10 +1,10 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from dense_point_cloud.Selective_IGEV.core.update import BasicSelectiveMultiUpdateBlock, SpatialAttentionExtractor, ChannelAttentionEnhancement
-from dense_point_cloud.Selective_IGEV.core.extractor import MultiBasicEncoder, Feature
-from dense_point_cloud.Selective_IGEV.core.geometry import Combined_Geo_Encoding_Volume
-from dense_point_cloud.Selective_IGEV.core.submodule import *
+from Disparity.Selective_IGEV.core.update import BasicSelectiveMultiUpdateBlock, SpatialAttentionExtractor, ChannelAttentionEnhancement
+from Disparity.Selective_IGEV.core.extractor import MultiBasicEncoder, Feature
+from Disparity.Selective_IGEV.core.geometry import Combined_Geo_Encoding_Volume
+from Disparity.Selective_IGEV.core.submodule import *
 
 
 try:

@@ -7,12 +7,12 @@ import numpy as np
 def load_stereo_parameters(path):
     with open(path, 'r') as file:
         params = json.load(file)
-        params['cameraMatrix1'] = np.transpose(np.array(params['cameraMatrix1']))
-        params['cameraMatrix2'] = np.transpose(np.array(params['cameraMatrix2']))
+        params['cameraMatrix1'] = np.array(params['cameraMatrix1'])
+        params['cameraMatrix2'] = np.array(params['cameraMatrix2'])
         params['distCoeffs1'] = np.array(params['distCoeffs1'])
         params['distCoeffs2'] = np.array(params['distCoeffs2'])
         params['imageSize'] = tuple([params['imageSize'][1], params['imageSize'][0]])
-        params['stereoR'] = np.transpose(np.array(params['stereoR']))
+        params['stereoR'] = np.array(params['stereoR'])
         params['stereoT'] = np.array(params['stereoT'])
     return params
 

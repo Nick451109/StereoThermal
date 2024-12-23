@@ -167,22 +167,42 @@ def evaluate_homography(M, pts0, pts1):
     Retorna:
         float: Error medio de reproyección.
     """
-    if M is None:
+    # Si no hay matriz o no hay puntos, el error es infinito
+    if M is None or pts0.size == 0 or pts1.size == 0:
         return float('inf')
 
-    # Si M es afín (2x3), la convertimos a una matriz 3x3
+    # Asegurar que M sea una homografía 3x3, si es afín (2x3) la convertimos a (3x3)
     if M.shape == (2, 3):
         H = np.eye(3, dtype=M.dtype)
         H[:2, :] = M
-    else:
+    elif M.shape == (3, 3):
         H = M
+    else:
+        raise ValueError(f"La matriz M tiene dimensiones no soportadas: {M.shape}")
 
-    pts0_homog = np.hstack([pts0, np.ones((pts0.shape[0], 1))])
-    pts0_transformed = M.dot(pts0_homog.T).T
-    pts0_transformed /= pts0_transformed[:, [2]]
+    # Asegurar que pts0 y pts1 sean Nx2
+    if pts0.shape[1] != 2 or pts1.shape[1] != 2:
+        raise ValueError("pts0 y pts1 deben ser de la forma Nx2.")
+
+    # Convertir pts0 a coordenadas homogéneas Nx3
+    pts0_homog = np.hstack([pts0, np.ones((pts0.shape[0], 1), dtype=pts0.dtype)])
+
+    # Transformar pts0 con H, resultado Nx3
+    pts0_transformed = (H @ pts0_homog.T).T
+
+    # Normalizar por la tercera coordenada
+    # Evitar división por cero
+    w = pts0_transformed[:, 2]
+    w[w == 0] = 1.0  # Si hubiera algún 0, lo evitamos, aunque no debería ocurrir con una homografía válida.
+    pts0_transformed /= w[:, np.newaxis]
+
+    # Tomar solo x,y
     pts0_transformed = pts0_transformed[:, :2]
+
+    # Calcular error de reproyección
     errors = np.linalg.norm(pts0_transformed - pts1, axis=1)
     return np.mean(errors)
+
 
 
 
@@ -253,7 +273,7 @@ def apply_afin_transformation(feats0, feats1, matches01, imagen0, imagen1, thres
     M, inliers = cv2.estimateAffine2D(
         pts0,
         pts1,
-        method=cv2.RANSAC,
+        method=cv2.USAC_MAGSAC,
         ransacReprojThreshold=5.0
     )
     
@@ -277,7 +297,7 @@ def apply_afin_transformation(feats0, feats1, matches01, imagen0, imagen1, thres
         (imagen1_np.shape[1], imagen1_np.shape[0])
     )
 
-    error = 0
+    error = evaluate_homography(M, pts0, pts1)
     return imagen0_warped, points0, scores, error
 
 def apply_homography_transformation(feats0, feats1, matches01, imagen0, imagen1, threshold=50):
@@ -309,7 +329,7 @@ def apply_homography_transformation(feats0, feats1, matches01, imagen0, imagen1,
             print(f"La imagen no es lo suficientemente precisa, solo posee {len(pts0)} matches")
             return None
     # Calcular la matriz de homografía
-    M, _ = cv2.findHomography(pts0, pts1, cv2.RANSAC, 5.0) # Este 5 se puede subir hasta 10
+    M, _ = cv2.findHomography(pts0, pts1, cv2.USAC_MAGSAC, 5.0) # Este 5 se puede subir hasta 10
     
     if M is None:
         raise ValueError("No se pudo calcular la homografía.")
@@ -324,7 +344,7 @@ def apply_homography_transformation(feats0, feats1, matches01, imagen0, imagen1,
         M, 
         (imagen1.shape[2], imagen1.shape[1])
     )
-    error = 0
+    error = evaluate_homography(M, pts0, pts1)
     return imagen0_warped, points0, scores, error
 
 
@@ -365,7 +385,7 @@ def apply_similarity_transformation(feats0, feats1, matches01, imagen0, imagen1,
     M, inliers = cv2.estimateAffinePartial2D(
         pts0,
         pts1,
-        method=cv2.RANSAC,
+        method=cv2.LMEDS,
         ransacReprojThreshold=5.0
     )
 
@@ -389,7 +409,7 @@ def apply_similarity_transformation(feats0, feats1, matches01, imagen0, imagen1,
         (imagen1_np.shape[1], imagen1_np.shape[0])
     )
 
-    error = 0
+    error = evaluate_homography(M, pts0, pts1)
     return imagen0_warped, points0, scores, error
 
 
@@ -471,7 +491,7 @@ def apply_rigid_transformation(feats0, feats1, matches01, imagen0, imagen1, thre
         (imagen1_np.shape[1], imagen1_np.shape[0])
     )
 
-    error = 0
+    error = evaluate_homography(M, pts0, pts1)
     return imagen0_warped, points0, scores, error
 
 
@@ -544,7 +564,7 @@ def apply_rigid_transformation_ransac(feats0, feats1, matches01, imagen0, imagen
         (imagen1_np.shape[1], imagen1_np.shape[0])
     )
 
-    error = 0
+    error = evaluate_homography(M, pts0, pts1)
     return imagen0_warped, points0, scores, error
 
 def estimate_rigid_transform(pts0, pts1):
@@ -621,7 +641,7 @@ def apply_translation_transformation(feats0, feats1, matches01, imagen0, imagen1
         (imagen1_np.shape[1], imagen1_np.shape[0])
     )
 
-    error = 0
+    error = evaluate_homography(M, pts0, pts1)
     return imagen0_warped, points0, scores, error
 
 
@@ -667,7 +687,7 @@ def apply_translation_transformation_ransac(feats0, feats1, matches01, imagen0, 
     M, inliers = cv2.estimateAffine2D(
         pts0_reshaped,
         pts1_reshaped,
-        method=cv2.RANSAC,
+        method=cv2.USAC_MAGSAC,
         ransacReprojThreshold=ransacReprojThreshold,
         refineIters=10  # Puedes ajustar el número de iteraciones de refinamiento
     )
@@ -698,7 +718,7 @@ def apply_translation_transformation_ransac(feats0, feats1, matches01, imagen0, 
         (imagen1_np.shape[1], imagen1_np.shape[0])
     )
 
-    error = 0
+    error = evaluate_homography(M, pts0, pts1)
     return imagen0_warped, points0, scores, error
 
 
@@ -730,7 +750,55 @@ def apply_translation_torch(imagen, t_x, t_y):
     # Remover la dimensión de batch antes de retornar
     return warped.squeeze(0)
 
-def apply_translation_transformation2(feats0, feats1, matches01, imagen0, imagen1, threshold=50, umbral_puntuacion=0.5):
+def apply_translation_torch(imagen, t_x, t_y):
+    """
+    Aplica una traslación pura a una imagen tensorial usando PyTorch.
+    Se asume que `imagen` tiene forma (C, H, W).
+
+    Parámetros:
+    - imagen (torch.Tensor): Tensor de la imagen de forma (C,H,W).
+    - t_x, t_y (float): Traslaciones en píxeles.
+
+    Retorna:
+    - warped (torch.Tensor): Imagen traducida.
+    - H (np.ndarray): Matriz homográfica 3x3 en coordenadas de píxeles para usar con evaluate_homography.
+    """
+    C, H, W = imagen.shape
+
+    # Crear la matriz de transformación afín (2x3) normalizada para grid_sample
+    M_normalized = torch.tensor(
+        [[1, 0, t_x / (W / 2)],  # Normalizar la traslación a [-1, 1]
+         [0, 1, t_y / (H / 2)]],
+        dtype=torch.float32,
+        device=imagen.device
+    )
+
+    # Aplicar la transformación con PyTorch
+    M_u = M_normalized.unsqueeze(0)  # (1, 2, 3)
+    imagen_4d = imagen.unsqueeze(0)  # (1, C, H, W)
+    grid = F.affine_grid(M_u, imagen_4d.size(), align_corners=False)
+    warped = F.grid_sample(imagen_4d, grid, align_corners=False).squeeze(0)
+
+    # Convertir la matriz normalizada a una homografía 3x3 en coordenadas de píxeles
+
+    # Extraer traslaciones normalizadas
+    t_x_norm = M_normalized[0, 2].item()
+    t_y_norm = M_normalized[1, 2].item()
+
+    # Convertir traslaciones normalizadas a píxeles
+    pixel_t_x = t_x_norm * (W / 2)
+    pixel_t_y = t_y_norm * (H / 2)
+
+    # Construir la matriz homográfica 3x3 en píxeles
+    H = np.array([
+        [1, 0, pixel_t_x],
+        [0, 1, pixel_t_y],
+        [0, 0,       1.0]
+    ], dtype=np.float32)
+
+    return warped, H
+
+def apply_translation_transformation2(feats0, feats1, matches01, imagen0, imagen1, threshold=50, umbral_puntuacion=0):
     """
     Aplica una transformación de traslación para registrar imagen0 con respecto a imagen1 usando PyTorch.
 
@@ -773,7 +841,7 @@ def apply_translation_transformation2(feats0, feats1, matches01, imagen0, imagen
     t_y = np.median(translations[:, 1])
     
     # Aplicar la traslación con PyTorch
-    imagen0_warped = apply_translation_torch(imagen0, t_x, t_y)
-    error = 0
+    imagen0_warped, M = apply_translation_torch(imagen0, t_x, t_y)
+    error = evaluate_homography(M, pts0, pts1)
     return imagen0_warped, points0, scores, error
     

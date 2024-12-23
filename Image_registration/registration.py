@@ -104,21 +104,6 @@ def procesar_imagenes(
         elif transformation_method == "translation_ransac":
             imagen0_warped, points0, scores, error = apply_translation_transformation_ransac(feats0, feats1, matches01, imagen0, imagen1, threshold=threshold)
 
-        # imagen0_warped, points0, scores, error = apply_homography_transformation(feats0, feats1, matches01, imagen0, imagen1, threshold=threshold)
-
-        # imagen0_warped, points0, scores, error = apply_afin_transformation(feats0, feats1, matches01, imagen0, imagen1, threshold=threshold)
-
-        # imagen0_warped, points0, scores, error = apply_rigid_transformation(feats0, feats1, matches01, imagen0, imagen1, threshold=threshold)
-
-        # imagen0_warped, points0, scores, error = apply_rigid_transformation_ransac(feats0, feats1, matches01, imagen0, imagen1, threshold=threshold)
-        
-        # imagen0_warped, points0, scores, error = apply_similarity_transformation(feats0, feats1, matches01, imagen0, imagen1, threshold=threshold)
-
-        # imagen0_warped, points0, scores, error = apply_translation_transformation2(feats0, feats1, matches01, imagen0, imagen1, threshold=threshold)
-
-        # imagen0_warped, points0, scores, error = apply_translation_transformation_ransac(feats0, feats1, matches01, imagen0, imagen1, threshold=threshold)
-        
-
         
         # imagen0_warped_pil = Image.fromarray(imagen0_warped)
         

@@ -73,3 +73,38 @@ def save_image(image, directory_path, extension='png'):
                 raise
         else:
             counter += 1
+
+def save_plt_image(plt, directory_path, extension='png'):
+    """
+    Saves the given plt to the specified directory with a sequential filename.
+
+    Parameters:
+    - plt: The plt to be save as an image.
+    - directory_path (str or Path): The directory where the image will be saved.
+    - extension (str): The file extension (default is 'png').
+
+    Returns:
+    - Path: The path where the image was saved.
+    """
+    directory = Path(directory_path)
+    directory.mkdir(parents=True, exist_ok=True)  # Create directory if it doesn't exist
+
+    # Initialize the counter
+    counter = 1
+
+    while True:
+        # Construct the filename
+        filename = f"{counter}.{extension}"
+        file_path = directory / filename
+
+        if not file_path.exists():
+            try:
+                plt.savefig(file_path, bbox_inches='tight')
+                print(f"Image saved as '{file_path}'.")
+                return file_path
+            except Exception as e:
+                print(f"Failed to save image: {e}")
+                raise
+        else:
+            counter += 1
+
