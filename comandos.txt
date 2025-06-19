@@ -1,0 +1,22 @@
+crear ambiente (3.10)
+python3.10 -m venv venv
+
+
+activarlo
+.\venv\Scripts\activate
+
+instalar requirements 
+pip install -r requirements.txt
+
+instalar seaborn
+pip install seaborn
+
+instalar cuda compatible con pytorch
+pip uninstall torch
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+
+instalar stackview 
+pip install stackview
+
+
+

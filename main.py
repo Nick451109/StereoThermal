@@ -1,10 +1,11 @@
 
+import torch
 from util import *
 from Image_registration import registration
 from Fusion.fusion import *
 import tifffile as tf
 from Disparity.disparity import compute_disparity
-def main(imageLeft, imageRight, imageThermal, threshold=200, transformation_method="homography"):
+def main(imageLeft, imageRight, imageThermal, threshold=200, transformation_method="homography"): 
     
     # Procesar las imágenes utilizando el registro
     image_warped, matches, scores, error = registration.procesar_imagenes(ruta_imagen0=imageThermal, ruta_imagen1=imageLeft, threshold=threshold, transformation_method=transformation_method)
@@ -40,21 +41,29 @@ if __name__ == "__main__":
     # image_left_path = "Cameras/captures/video_image_extractor_results/left/image_00005.png"
     # image_right_path = "Cameras/captures/video_image_extractor_results/right/image_00005.png"
 
-    image_thermal_path = "Cameras/captures/thermal/thermal_20241030_130522.png"
-    image_left_path = "Cameras/captures/visible/left_rect/LEFT_visible_20241030_130522.png"
-    image_right_path = "Cameras/captures/visible/right_rect/RIGHT_visible_20241030_130522.png"
+    #image_thermal_path = "Cameras/captures/thermal/thermal_20241030_130522.png"
+    #image_left_path = "Cameras/captures/visible/left_rect/LEFT_visible_20241030_130522.png"
+    #image_right_path = "Cameras/captures/visible/right_rect/RIGHT_visible_20241030_130522.png"
+
+    #pocos matches
+    #image_thermal_path = "./captures/thermal/thermal_20250612_152008.png"
+    #image_left_path = "./captures/visible/left/LEFT_visible_20250612_152008.png"
+    #image_right_path = "./captures/visible/right/RIGHT_visible_20250612_152008.png"
+
+    image_thermal_path = "./captures/thermal/thermal_20250612_160532.png"
+    image_left_path = "./captures/visible/left/LEFT_visible_20250612_160532.png"
+    image_right_path = "./captures/visible/right/RIGHT_visible_20250612_160532.png"
 
     transformation_name = "homography"
     # Umbral para el registro
-    threshold = 200
-    
+    threshold = 100
+    #cambiar a threshold=200
 
     main(imageLeft=image_left_path, imageRight=image_right_path,imageThermal=image_thermal_path, threshold=threshold, transformation_method=transformation_name)
 
     
 
     print("END")
-
 
 
 
