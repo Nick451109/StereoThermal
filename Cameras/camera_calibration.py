@@ -33,9 +33,9 @@ objpoints_thermal_individual = []
 imgpoints_thermal_individual = []
 
 # Carga las imágenes para cada cámara
-color1_images = glob.glob('../CalibrationData/Steven/left/*.png')
-color2_images = glob.glob('../CalibrationData/Steven/right/*.png')
-thermal_images = glob.glob('../CalibrationData/Steven/thermal_invert/*.png')
+color1_images  = glob.glob('Cameras/calibration_caps/left/*.png')
+color2_images  = glob.glob('Cameras/calibration_caps/right/*.png')
+thermal_images = glob.glob('Cameras/calibration_caps/thermal/*.png')
 
 # Asegúrate de que todas las listas de imágenes estén ordenadas y tengan la misma longitud
 color1_images.sort()
