@@ -28,7 +28,8 @@ def main(imageLeft, imageRight, imageThermal, threshold=200, transformation_meth
         metadata={'description':'RGB Image + Thermal LWIR Channel + Disparity'},
         compression=None)
     
-    
+    cv2.imwrite("disparity_map.tiff", disparity.astype(np.float32))
+
     
 
     
@@ -50,9 +51,9 @@ if __name__ == "__main__":
     #image_left_path = "./captures/visible/left/LEFT_visible_20250612_152008.png"
     #image_right_path = "./captures/visible/right/RIGHT_visible_20250612_152008.png"
 
-    image_thermal_path = "./captures/thermal/thermal_20250612_160532.png"
-    image_left_path = "./captures/visible/left/LEFT_visible_20250612_160532.png"
-    image_right_path = "./captures/visible/right/RIGHT_visible_20250612_160532.png"
+    image_thermal_path = "./captures/thermal/thermal_20250625_102056.png"
+    image_left_path = "./captures/visible/left/LEFT_visible_20250625_102056.png"
+    image_right_path = "./captures/visible/right/RIGHT_visible_20250625_102056.png"
 
     transformation_name = "homography"
     # Umbral para el registro

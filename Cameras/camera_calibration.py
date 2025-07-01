@@ -35,7 +35,11 @@ imgpoints_thermal_individual = []
 # Carga las imágenes para cada cámara
 color1_images  = glob.glob('Cameras/calibration_caps/left/*.png')
 color2_images  = glob.glob('Cameras/calibration_caps/right/*.png')
-thermal_images = glob.glob('Cameras/calibration_caps/thermal/*.png')
+thermal_images = glob.glob('Cameras/calibration_caps/thermal_invert/*.png')
+
+print("Número de imágenes color 1:", len(color1_images))
+print("Número de imágenes color 2:", len(color2_images))
+print("Número de imágenes térmicas:", len(thermal_images))
 
 # Asegúrate de que todas las listas de imágenes estén ordenadas y tengan la misma longitud
 color1_images.sort()
@@ -127,9 +131,9 @@ print("Matriz de traslación entre cámaras térmica y color 1:", T_thermal)
 
 
 # Carga las imágenes para cada cámara
-color1_images = glob.glob('../CalibrationData/Steven/left/*.png')
-color2_images = glob.glob('../CalibrationData/Steven/right/*.png')
-thermal_images = glob.glob('../CalibrationData/Steven/thermal/*.png')
+color1_images  = glob.glob('Cameras/calibration_caps/left/*.png')
+color2_images  = glob.glob('Cameras/calibration_caps/right/*.png')
+thermal_images = glob.glob('Cameras/calibration_caps/thermal/*.png')
 
 # Asegúrate de que todas las listas de imágenes estén ordenadas y tengan la misma longitud
 color1_images.sort()
@@ -138,9 +142,9 @@ thermal_images.sort()
 
 
 # Crear directorios para guardar las imágenes rectificadas si no existen
-os.makedirs('../CalibrationData/Steven_rectified/left', exist_ok=True)
-os.makedirs('../CalibrationData/Steven_rectified/right', exist_ok=True)
-os.makedirs('../CalibrationData/Steven_rectified/thermal', exist_ok=True)
+os.makedirs('output_rect2/left', exist_ok=True)
+os.makedirs('output_rect2/right', exist_ok=True)
+os.makedirs('output_rect2/thermal', exist_ok=True)
 
 # Obtener los mapas de remapeo para las cámaras color
 map1_x, map1_y = cv2.initUndistortRectifyMap(
@@ -171,9 +175,9 @@ for idx in range(num_images):
     img_color1_rect_thermal = cv2.remap(img_color1, map_color1_x_thermal, map_color1_y_thermal, cv2.INTER_LINEAR)
 
     # Guardar imágenes rectificadas
-    cv2.imwrite(f'../CalibrationData/Steven_rectified/left/left_{idx}.png', img_color1_rect)
-    cv2.imwrite(f'../CalibrationData/Steven_rectified/right/right_{idx}.png', img_color2_rect)
-    cv2.imwrite(f'../CalibrationData/Steven_rectified/thermal/thermal_{idx}.png', img_thermal_rect)
+    cv2.imwrite(f'output_rect2/left/left_{idx}.png', img_color1_rect)
+    cv2.imwrite(f'output_rect2/right/right_{idx}.png', img_color2_rect)
+    cv2.imwrite(f'output_rect2/thermal/thermal_{idx}.png', img_thermal_rect)
 
     # Opcional: Visualizar las imágenes rectificadas lado a lado con líneas horizontales
     # Combinar imágenes para visualización

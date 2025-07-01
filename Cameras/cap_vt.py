@@ -145,6 +145,8 @@ class VideoCaptureApp:
         img_right_pil = Image.fromarray(img_right_rgb)
         img_thermal_pil = Image.fromarray(img_thermal_rgb)
 
+        print("left: ", img_left_pil.size, ", right: ", img_right_pil.size, "thermal: ", img_thermal_pil.size)
+
         # Redimensionar las imágenes para la interfaz, manteniendo el aspect ratio
         # Imágenes visibles (16:9)
         # Usar esto si se quiere usar la resolucion de 1920x1080

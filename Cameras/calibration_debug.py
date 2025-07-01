@@ -15,7 +15,7 @@ objp = np.zeros((CHECKERBOARD_SIZE[0] * CHECKERBOARD_SIZE[1], 3), np.float32)
 objp[:, :2] = np.mgrid[0:CHECKERBOARD_SIZE[0], 0:CHECKERBOARD_SIZE[1]].T.reshape(-1, 2) * square_size
 
 # Almacenar puntos 3D y puntos 2D de las imágenes
-objpoints_stereo_color = []  # Puntos 3D para calibración estéreo color
+objpoints_stereo_color  = []  # Puntos 3D para calibración estéreo color
 imgpoints_color1_stereo = []  # Puntos 2D de la cámara color 1 para estéreo
 imgpoints_color2_stereo = []  # Puntos 2D de la cámara color 2 para estéreo
 

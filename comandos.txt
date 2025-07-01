@@ -1,7 +1,6 @@
 crear ambiente (3.10)
 python3.10 -m venv venv
 
-
 activarlo
 .\venv\Scripts\activate
 
