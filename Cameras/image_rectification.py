@@ -226,37 +226,31 @@ class StereoCamera:
 
 # Ejemplo de uso con tus resultados de calibración
 if __name__ == "__main__":
+    calibration_data = np.load('Cameras/calibration_data.npz')
+    print(calibration_data['R_thermal'])
     # Aquí pondrías los resultados reales de tu calibración
     calibration_results = {
-        'mtx_color1': np.array([[374.81025905, 0, 327.91970548],
-                               [0, 374.29628807, 243.56483435],
-                               [0, 0, 1]]),
-        'mtx_color2': np.array([[374.81025905, 0, 327.91970548],  # Ajustar con valores reales
-                               [0, 374.29628807, 243.56483435],
-                               [0, 0, 1]]),
-        'mtx_thermal': np.array([[444.51979652, 0, 304.52777616],
-                                [0, 443.08111893, 231.39811866],
-                                [0, 0, 1]]),
-        'dist_color1': np.array([0, 0, 0, 0, 0]),  # Ajustar con valores reales de distorsión
-        'dist_color2': np.array([0, 0, 0, 0, 0]),
-        'dist_thermal': np.array([0, 0, 0, 0, 0]),
-        'R_color': np.array([[9.99296458e-01, 1.28810103e-03, -3.74823948e-02],
-                            [-4.22637036e-04, 9.99733332e-01, 2.30886485e-02],
-                            [3.75021400e-02, -2.30565632e-02, 9.99030522e-01]]),
-        'T_color': np.array([[-0.13016964], [-34.58389644], [15.00283179]]),  # Ajustar
-        'R_thermal': np.eye(3),  # Ajustar con valores reales
-        'T_thermal': np.array([[-0.13016964], [-34.58389644], [15.00283179]])
+        'mtx_color1':   calibration_data['mtx_color1'],  
+        'mtx_color2':   calibration_data['mtx_color2'],  
+        'mtx_thermal':  calibration_data['mtx_thermal'], 
+        'dist_color1':  calibration_data['dist_color1'], 
+        'dist_color2':  calibration_data['dist_color2'], 
+        'dist_thermal': calibration_data['dist_thermal'],
+        'R_color':      calibration_data['R_color'],
+        'T_color':      calibration_data['T_color'],
+        'R_thermal':    calibration_data['R_thermal'],
+        'T_thermal':    calibration_data['T_thermal']
     }
     
     # Crear sistema de cámaras
     stereo_system = StereoCamera(calibration_results)
     
     # Procesar imágenes existentes
-    # stereo_system.process_images_batch(
-    #     color1_folder="Cameras/calibration_caps/left",
-    #     color2_folder="Cameras/calibration_caps/right", 
-    #     thermal_folder="Cameras/calibration_caps/thermal",
-    #     output_folder="output_rectified"
-    # )
+    stereo_system.process_images_batch(
+        color1_folder="Cameras/calibration_caps/left",
+        color2_folder="Cameras/calibration_caps/right", 
+        thermal_folder="Cameras/calibration_caps/thermal",
+        output_folder="output_rectified"
+    )
 
-    stereo_system.capture_and_rectify_live()
+    # stereo_system.capture_and_rectify_live()

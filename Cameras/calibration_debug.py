@@ -42,9 +42,9 @@ print("Número de imágenes color 1:", len(color1_images))
 print("Número de imágenes color 2:", len(color2_images))
 print("Número de imágenes térmicas:", len(thermal_images))
 
-print(color1_images)
-print(color2_images)
-print(thermal_images)
+# print(color1_images)
+# print(color2_images)
+# print(thermal_images)
 # Asegúrate de que todas las listas de imágenes estén ordenadas y tengan la misma longitud
 color1_images.sort()
 color2_images.sort()
@@ -215,10 +215,22 @@ print(mtx_color1)
 print("\nMatriz intrínseca cámara térmica:")
 print(mtx_thermal)
 if R_color is not None:
+    print("\nMatriz de traslación entre cámaras térmica y color 1:")
+    print(T_color)
     print("\nMatriz de rotación entre cámaras color:")
     print(R_color)
 if T_thermal is not None:
     print("\nMatriz de traslación entre cámaras térmica y color 1:")
     print(T_thermal)
+    print("\nMatriz de rotación entre cámaras térmica y color 1:")
+    print(R_thermal)
 
 print(f"\n✓ Calibración completada exitosamente!")
+
+# Guardar los resultados de calibración en un archivo .npz
+np.savez('Cameras/calibration_data.npz',
+    mtx_color1=mtx_color1, dist_color1=dist_color1,
+    mtx_color2=mtx_color2, dist_color2=dist_color2,
+    mtx_thermal=mtx_thermal, dist_thermal=dist_thermal,
+    R_color=R_color, T_color=T_color,
+    R_thermal=R_thermal, T_thermal=T_thermal)
