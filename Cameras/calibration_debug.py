@@ -4,7 +4,7 @@ import glob
 import os
 
 # Parámetros iniciales
-CHECKERBOARD_SIZE = (6, 9)  # Ajustar según tu patrón
+CHECKERBOARD_SIZE = (7, 10)  # Ajustar según tu patrón
 square_size = 20.0  # Tamaño de los cuadrados del checkerboard en mm
 
 # Criterios para cornerSubPix
@@ -34,9 +34,9 @@ objpoints_thermal_individual = []
 imgpoints_thermal_individual = []
 
 # Carga las imágenes para cada cámara
-color1_images  = glob.glob('Cameras/calibration_caps/calibration_dataset/rgb/*.png')
-color2_images  = glob.glob('Cameras/calibration_caps/right/*.png')
-thermal_images = glob.glob('Cameras/calibration_caps/calibration_dataset/thermal/*.png')
+color1_images  = glob.glob('captures/visible/right/*.png')
+color2_images  = glob.glob('captures/visible/left/*.png')
+thermal_images = glob.glob('captures/inverse/*.png')
 
 print("Número de imágenes color 1:", len(color1_images))
 print("Número de imágenes color 2:", len(color2_images))
@@ -120,7 +120,7 @@ for i in range(num_images):
         # Debug: Mostrar imagen térmica para inspección visual
         img_thermal_display = cv2.resize(img_thermal, (400, 300))
         cv2.imshow('Imagen Termica - No se detectaron esquinas', img_thermal_display)
-        key = cv2.waitKey(1000)  # Mostrar por 1 segundo
+        key = cv2.waitKey(200)  # Mostrar por 1 segundo
         if key == 27:  # ESC para salir
             break
 
