@@ -247,9 +247,9 @@ if __name__ == "__main__":
     
     # Procesar imágenes existentes
     stereo_system.process_images_batch(
-        color1_folder="Cameras/calibration_caps/left",
+        color1_folder="Cameras/calibration_caps/calibration_dataset/rgb",
         color2_folder="Cameras/calibration_caps/right", 
-        thermal_folder="Cameras/calibration_caps/thermal",
+        thermal_folder="Cameras/calibration_caps/calibration_dataset/rgb",
         output_folder="output_rectified"
     )
 

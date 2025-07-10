@@ -2,6 +2,7 @@ import cv2
 import os
 import datetime
 import tkinter as tk
+import time
 from PIL import Image, ImageTk
 
 # Crear carpetas para las capturas si no existen
@@ -154,11 +155,11 @@ class VideoCaptureApp:
         # img_right_pil = img_right_pil.resize((320, 180), Image.LANCZOS)
 
         #Usar esto si se quiere utilizar la resolucion de 640x480
-        img_left_pil = img_left_pil.resize((320, 240), Image.LANCZOS)
-        img_right_pil = img_right_pil.resize((320, 240), Image.LANCZOS)
+        img_left_pil = img_left_pil.resize((640, 480), Image.LANCZOS)
+        img_right_pil = img_right_pil.resize((640, 480), Image.LANCZOS)
 
         # Imagen térmica (4:3)
-        img_thermal_pil = img_thermal_pil.resize((320, 240), Image.LANCZOS)
+        img_thermal_pil = img_thermal_pil.resize((640, 480), Image.LANCZOS)
 
         self.img_left_tk = ImageTk.PhotoImage(image=img_left_pil)
         self.img_right_tk = ImageTk.PhotoImage(image=img_right_pil)
@@ -172,40 +173,54 @@ class VideoCaptureApp:
         self.root.after(10, self.update_video)
 
     def capture_image(self):
-        # Obtener la fecha y hora actual en formato YYYYMMDD_HHMMSS
-        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
-        # Definir los nombres de archivo con la marca de tiempo y los identificadores LEFT_ y RIGHT_
-        left_filename = f"captures/visible/left/LEFT_visible_{timestamp}.png"
-        right_filename = f"captures/visible/right/RIGHT_visible_{timestamp}.png"
-        thermal_filename = f"captures/thermal/thermal_{timestamp}.png"
+        for i in range(4):
+            # Obtener la fecha y hora actual en formato YYYYMMDD_HHMMSS
+            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
-        # Guardar las imágenes
-        ret_visible, img_visible = self.cap_visible.read()
-        ret_thermal, img_thermal = self.cap_thermal.read()
+            # Definir los nombres de archivo con la marca de tiempo y los identificadores LEFT_ y RIGHT_
+            left_filename = f"visible/left/LEFT_visible_{timestamp}.png"
+            right_filename = f"visible/right/RIGHT_visible_{timestamp}.png"
+            thermal_filename = f"thermal/thermal_{timestamp}.png"
 
-        if ret_visible and ret_thermal:
-            # Dividir la imagen visible en dos imágenes: izquierda y derecha
-            height, width, _ = img_visible.shape
-            mid_width = width // 2  # Mitad del ancho
+            if not os.path.exists("visible/left/"):
+                os.makedirs("visible/left/")
 
-            # Imagen izquierda
-            img_left = img_visible[:, :mid_width]
+            if not os.path.exists("visible/right/"):
+                os.makedirs("visible/right/")
 
-            # Imagen derecha
-            img_right = img_visible[:, mid_width:]
+            if not os.path.exists("thermal/"):
+                os.makedirs("thermal/")
 
-            # Convertir la imagen térmica a escala de grises
-            img_thermal_gray = cv2.cvtColor(img_thermal, cv2.COLOR_BGR2GRAY)
+            # Guardar las imágenes
+            ret_visible, img_visible = self.cap_visible.read()
+            ret_thermal, img_thermal = self.cap_thermal.read()
 
-            cv2.imwrite(left_filename, img_left)
-            cv2.imwrite(right_filename, img_right)
-            cv2.imwrite(thermal_filename, img_thermal_gray)
-            # Actualizar mensaje en la interfaz
-            self.message_label.config(text="¡Capturas guardadas!", fg="green")
-        else:
-            # Actualizar mensaje de error
-            self.message_label.config(text="Error al capturar imágenes.", fg="red")
+            if ret_visible and ret_thermal:
+                # Dividir la imagen visible en dos imágenes: izquierda y derecha
+                height, width, _ = img_visible.shape
+                mid_width = width // 2  # Mitad del ancho
+
+                # Imagen izquierda
+                img_left = img_visible[:, :mid_width]
+
+                # Imagen derecha
+                img_right = img_visible[:, mid_width:]
+
+                # Convertir la imagen térmica a escala de grises
+                img_thermal_gray = cv2.cvtColor(img_thermal, cv2.COLOR_BGR2GRAY)
+
+                cv2.imwrite(left_filename, img_left)
+                cv2.imwrite(right_filename, img_right)
+                cv2.imwrite(thermal_filename, img_thermal_gray)
+                # Actualizar mensaje en la interfaz
+                self.message_label.config(text="¡Capturas guardadas!", fg="green")
+            else:
+                # Actualizar mensaje de error
+                self.message_label.config(text="Error al capturar imágenes.", fg="red")
+            
+            time.sleep(2)  # Esperar medio segundo antes de la siguiente captura
+            print(f"Captura {i+1} realizada: {left_filename}, {right_filename}, {thermal_filename}")
 
     def toggle_recording(self):
         self.recording = not self.recording

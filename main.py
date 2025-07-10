@@ -38,9 +38,9 @@ def main(imageLeft, imageRight, imageThermal, threshold=200, transformation_meth
 if __name__ == "__main__":
     
     # Rutas de las imágenes
-    # image_thermal_path = "Cameras/captures/video_image_extractor_results/thermal/image_00005.png"
-    # image_left_path = "Cameras/captures/video_image_extractor_results/left/image_00005.png"
-    # image_right_path = "Cameras/captures/video_image_extractor_results/right/image_00005.png"
+    image_thermal_path = "Cameras/captures/video_image_extractor_results/thermal/image_00005.png"
+    image_left_path = "Cameras/captures/video_image_extractor_results/left/image_00005.png"
+    image_right_path = "Cameras/captures/video_image_extractor_results/right/image_00005.png"
 
     #image_thermal_path = "Cameras/captures/thermal/thermal_20241030_130522.png"
     #image_left_path = "Cameras/captures/visible/left_rect/LEFT_visible_20241030_130522.png"
@@ -51,13 +51,14 @@ if __name__ == "__main__":
     #image_left_path = "./captures/visible/left/LEFT_visible_20250612_152008.png"
     #image_right_path = "./captures/visible/right/RIGHT_visible_20250612_152008.png"
 
-    image_thermal_path = "./captures/thermal/thermal_20250625_102056.png"
-    image_left_path = "./captures/visible/left/LEFT_visible_20250625_102056.png"
-    image_right_path = "./captures/visible/right/RIGHT_visible_20250625_102056.png"
+    # image_thermal_path = "./captures/thermal/thermal_20250625_102056.png"
+    # image_left_path = "./captures/visible/left/LEFT_visible_20250625_102056.png"
+    # image_right_path = "./captures/visible/right/RIGHT_visible_20250625_102056.png"
 
     transformation_name = "homography"
     # Umbral para el registro
-    threshold = 100
+    threshold = 5
+    
     #cambiar a threshold=200
 
     main(imageLeft=image_left_path, imageRight=image_right_path,imageThermal=image_thermal_path, threshold=threshold, transformation_method=transformation_name)

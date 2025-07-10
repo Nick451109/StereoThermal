@@ -33,9 +33,9 @@ objpoints_thermal_individual = []
 imgpoints_thermal_individual = []
 
 # Carga las imágenes para cada cámara
-color1_images  = glob.glob('Cameras/calibration_caps/left/*.png')
-color2_images  = glob.glob('Cameras/calibration_caps/right/*.png')
-thermal_images = glob.glob('Cameras/calibration_caps/thermal_invert/*.png')
+color1_images  = glob.glob('Steven_rectified/left/*.png')
+color2_images  = glob.glob('Steven_rectified/right/*.png')
+thermal_images = glob.glob('Steven_rectified/thermal/*.png')
 
 print("Número de imágenes color 1:", len(color1_images))
 print("Número de imágenes color 2:", len(color2_images))
@@ -131,9 +131,9 @@ print("Matriz de traslación entre cámaras térmica y color 1:", T_thermal)
 
 
 # Carga las imágenes para cada cámara
-color1_images  = glob.glob('Cameras/calibration_caps/left/*.png')
-color2_images  = glob.glob('Cameras/calibration_caps/right/*.png')
-thermal_images = glob.glob('Cameras/calibration_caps/thermal/*.png')
+color1_images  = glob.glob('Steven_rectified/left/*.png')
+color2_images  = glob.glob('Steven_rectified/right/*.png')
+thermal_images = glob.glob('Steven_rectified/thermal/*.png')
 
 # Asegúrate de que todas las listas de imágenes estén ordenadas y tengan la misma longitud
 color1_images.sort()
