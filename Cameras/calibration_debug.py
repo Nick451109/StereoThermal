@@ -34,9 +34,9 @@ objpoints_thermal_individual = []
 imgpoints_thermal_individual = []
 
 # Carga las imágenes para cada cámara
-color1_images  = glob.glob('Cameras/calibration_caps/left/*.png')
+color1_images  = glob.glob('Cameras/calibration_caps/calibration_dataset/rgb/*.png')
 color2_images  = glob.glob('Cameras/calibration_caps/right/*.png')
-thermal_images = glob.glob('Cameras/calibration_caps/thermal_invert/*.png')
+thermal_images = glob.glob('Cameras/calibration_caps/calibration_dataset/thermal/*.png')
 
 print("Número de imágenes color 1:", len(color1_images))
 print("Número de imágenes color 2:", len(color2_images))
@@ -139,7 +139,7 @@ for i in range(num_images):
 cv2.destroyAllWindows()
 
 # Mostrar estadísticas de detección
-print(f"\n=== ESTADÍSTICAS DE DETECCIÓN ===")
+print(f"/n=== ESTADÍSTICAS DE DETECCIÓN ===")
 print(f"Color1: {color1_detections}/{num_images} detecciones ({color1_detections/num_images*100:.1f}%)")
 print(f"Color2: {color2_detections}/{num_images} detecciones ({color2_detections/num_images*100:.1f}%)")
 print(f"Térmica: {thermal_detections}/{num_images} detecciones ({thermal_detections/num_images*100:.1f}%)")
@@ -150,11 +150,11 @@ print(f"Estéreo térmica-color1: {len(objpoints_stereo_thermal)} pares sincroni
 min_images_required = 10  # Mínimo recomendado para calibración
 
 if len(objpoints_color1) < min_images_required:
-    print(f"\n⚠️  ADVERTENCIA: Solo {len(objpoints_color1)} detecciones en color1. Se recomiendan al menos {min_images_required}")
+    print(f"/n⚠️  ADVERTENCIA: Solo {len(objpoints_color1)} detecciones en color1. Se recomiendan al menos {min_images_required}")
 if len(objpoints_color2) < min_images_required:
-    print(f"\n⚠️  ADVERTENCIA: Solo {len(objpoints_color2)} detecciones en color2. Se recomiendan al menos {min_images_required}")
+    print(f"/n⚠️  ADVERTENCIA: Solo {len(objpoints_color2)} detecciones en color2. Se recomiendan al menos {min_images_required}")
 if len(objpoints_thermal_individual) < min_images_required:
-    print(f"\n❌ ERROR: Solo {len(objpoints_thermal_individual)} detecciones en térmica. Se recomiendan al menos {min_images_required}")
+    print(f"/n❌ ERROR: Solo {len(objpoints_thermal_individual)} detecciones en térmica. Se recomiendan al menos {min_images_required}")
     print("   Posibles soluciones:")
     print("   1. Usar un tablero con mejor contraste térmico")
     print("   2. Ajustar la temperatura del tablero")
@@ -163,7 +163,7 @@ if len(objpoints_thermal_individual) < min_images_required:
     exit(1)
 
 # Solo continuar con la calibración si hay suficientes detecciones
-print(f"\n=== INICIANDO CALIBRACIÓN ===")
+print(f"/n=== INICIANDO CALIBRACIÓN ===")
 
 # Calibrar cámaras individualmente
 print("Calibrando cámara color 1...")
@@ -179,7 +179,7 @@ ret3, mtx_thermal, dist_thermal, _, _ = cv2.calibrateCamera(objpoints_thermal_in
 print(f"Error de reproyección térmica: {ret3:.3f}")
 
 # Verificar que las listas para calibración estéreo tengan la misma longitud
-print(f"\n=== CALIBRACIÓN ESTÉREO ===")
+print(f"/n=== CALIBRACIÓN ESTÉREO ===")
 print("Número de vistas para calibración estéreo color-color:", len(objpoints_stereo_color))
 print("Número de vistas para calibración estéreo térmica-color1:", len(objpoints_stereo_thermal))
 
@@ -209,23 +209,23 @@ else:
     R_thermal = T_thermal = None
 
 # Mostrar resultados clave
-print(f"\n=== RESULTADOS ===")
+print(f"/n=== RESULTADOS ===")
 print("Matriz intrínseca cámara color 1:")
 print(mtx_color1)
-print("\nMatriz intrínseca cámara térmica:")
+print("/nMatriz intrínseca cámara térmica:")
 print(mtx_thermal)
 if R_color is not None:
-    print("\nMatriz de traslación entre cámaras térmica y color 1:")
+    print("/nMatriz de traslación entre cámaras térmica y color 1:")
     print(T_color)
-    print("\nMatriz de rotación entre cámaras color:")
+    print("/nMatriz de rotación entre cámaras color:")
     print(R_color)
 if T_thermal is not None:
-    print("\nMatriz de traslación entre cámaras térmica y color 1:")
+    print("/nMatriz de traslación entre cámaras térmica y color 1:")
     print(T_thermal)
-    print("\nMatriz de rotación entre cámaras térmica y color 1:")
+    print("/nMatriz de rotación entre cámaras térmica y color 1:")
     print(R_thermal)
 
-print(f"\n✓ Calibración completada exitosamente!")
+print(f"/n✓ Calibración completada exitosamente!")
 
 # Guardar los resultados de calibración en un archivo .npz
 np.savez('Cameras/calibration_data.npz',
