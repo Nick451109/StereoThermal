@@ -13,4 +13,4 @@ def listar_rutas(directorio):
     print(', '.join(f"'{r}'" for r in rutas))
 
 if __name__ == "__main__":
-    listar_rutas('captures/visible/right/')
+    listar_rutas('captures/inverse/')
