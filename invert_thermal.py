@@ -39,19 +39,19 @@ def invert_thermal():
 def rgb2grayscale():
 
     # Cargar la imagen
-    imagen = cv2.imread('captures/visible/right/RIGHT_visible_20250710_110814.png')
+    imagen = cv2.imread('captures/right2/RIGHT_visible_20250710_110814.png')
 
-    if imagen is None:
-        print("Error al cargar la imagen.")
-    else:
-        # Crea una ventana y muestra la imagen
-        cv2.imshow('Imagen', imagen)
+    # if imagen is None:
+    #     print("Error al cargar la imagen.")
+    # else:
+    #     # Crea una ventana y muestra la imagen
+    #     cv2.imshow('Imagen', imagen)
 
-        # Espera a que se presione una tecla
-        cv2.waitKey(0)
+    #     # Espera a que se presione una tecla
+    #     cv2.waitKey(0)
 
-        # Cierra la ventana
-        cv2.destroyAllWindows()
+    #     # Cierra la ventana
+    #     cv2.destroyAllWindows()
 
     # Convertir a escala de grises
     imagen_gris = cv2.cvtColor(imagen, cv2.COLOR_BGR2GRAY)
