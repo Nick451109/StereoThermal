@@ -6,10 +6,12 @@ import time
 
 class CameraInterface:
     def __init__(self):
+
+        self.path = "captures/temp"
         # Crear carpetas para las capturas si no existen
-        os.makedirs("captures/thermal", exist_ok=True)
-        os.makedirs("captures/visible/left", exist_ok=True)
-        os.makedirs("captures/visible/right", exist_ok=True)
+        os.makedirs(self.path + "/therm", exist_ok=True)
+        os.makedirs(self.path + "/left", exist_ok=True)
+        os.makedirs(self.path + "/right", exist_ok=True)
         
         # Variables de estado
         self.running = True
@@ -120,16 +122,16 @@ class CameraInterface:
         self.message = "Iniciando captura..."
         self.message_timer = time.time()
 
-        iterations = 9
+        iterations = 10
         
         for i in range(iterations):
             # Obtener timestamp
             timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
             
             # Definir nombres de archivo
-            left_filename = f"captures/visible/left/LEFT_visible_{timestamp}.png"
-            right_filename = f"captures/visible/right/RIGHT_visible_{timestamp}.png"
-            thermal_filename = f"captures/thermal/thermal_{timestamp}.png"
+            left_filename    = f"captures/temp/left/{timestamp}.png"
+            right_filename   = f"captures/temp/right/{timestamp}.png"
+            thermal_filename = f"captures/temp/therm/{timestamp}.png"
             
             # Leer imágenes de las cámaras
             ret_visible, img_visible = self.cap_visible.read()
