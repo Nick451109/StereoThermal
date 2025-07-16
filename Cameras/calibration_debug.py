@@ -4,7 +4,7 @@ import glob
 import os
 
 # Parámetros iniciales
-CHECKERBOARD_SIZE = (7, 10)  # Ajustar según tu patrón
+CHECKERBOARD_SIZE = (6, 9)  # Ajustar según tu patrón
 square_size = 20.0  # Tamaño de los cuadrados del checkerboard en mm
 
 # Criterios para cornerSubPix
@@ -34,9 +34,9 @@ objpoints_thermal_individual = []
 imgpoints_thermal_individual = []
 
 # Carga las imágenes para cada cámara
-color1_images  = glob.glob('captures/visible/right/*.png')
-color2_images  = glob.glob('captures/visible/left/*.png')
-thermal_images = glob.glob('captures/inverse/*.png')
+color1_images  = glob.glob('captures/temp/right/*.png')
+color2_images  = glob.glob('captures/temp/left/*.png')
+thermal_images = glob.glob('captures/temp/invert/*.png')
 
 print("Número de imágenes color 1:", len(color1_images))
 print("Número de imágenes color 2:", len(color2_images))
