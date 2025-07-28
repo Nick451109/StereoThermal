@@ -1,0 +1,6 @@
+--> Crear la imagen 
+docker build -t stereothermal_image .
+
+--> Correr el contenedor(se eliminará cuando salgamos(exit))
+docker run -it --rm --gpus all -v "C:\Users\Admin-Cidis\Documents\GitHub\StereoThermal:/workspace" --workdir /workspace stereothermal_image
+
