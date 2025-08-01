@@ -63,7 +63,8 @@ def procesar_imagenes(
         raise ValueError(f"Extractor tipo '{extractor_tipo}' no es válido. Selecciona entre 'superpoint', 'disk', 'sift', 'aliked', 'doghardnet'.")
     
     extractor, matcher = extractor_dict[extractor_tipo.lower()]
-    
+    print(f"[INFO] Extractor: {type(extractor)} - Matcher: {type(matcher)}")
+
     try:
         # Cargar y preparar las imágenes
         imagen0 = load_image(ruta_imagen0).to(dispositivo)
@@ -79,7 +80,9 @@ def procesar_imagenes(
         
         # Emparejar características
         matches01 = matcher({'image0': feats0, 'image1': feats1})
+        print(f"[INFO] Matches: {len(matches01['matches'])}")
         feats0, feats1, matches01 = [rbd(x) for x in [feats0, feats1, matches01]]
+        print(f"[INFO] Matches después de rbd: {len(matches01['matches'])}")
         
         
         # # Obtener los puntos clave y las correspondencias del primer conjunto
