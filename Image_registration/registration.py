@@ -20,7 +20,7 @@ from skimage.metrics import structural_similarity as ssim
 def procesar_imagenes(
     ruta_imagen0,
     ruta_imagen1,
-    extractor_tipo="superpoint",
+    extractor_tipo="aliked",
     max_num_keypoints=8192,
     dispositivo=None,
     filtro_imagen0=None,  # Nuevo parámetro para aplicar filtros a imagen0
@@ -128,8 +128,8 @@ def procesar_imagenes(
 def mostrar_correspondencias_mejorada(
     ruta_imagen0,
     ruta_imagen1,
-    extractor_tipo="superpoint",
-    max_num_keypoints=4096,
+    extractor_tipo="aliked",
+    max_num_keypoints=8192,
     dispositivo=None,
     umbral_score=0.5,
     guardar_figura=False,
