@@ -4,10 +4,10 @@ from skimage.exposure import match_histograms
 import matplotlib.pyplot as plt
 import os
 
-def histogram_matching_termica_a_visible(
+def histogram_matching_visible_a_termica(
     ruta_termica,
     ruta_visible,
-    ruta_salida="salidas/termica_matched.png",
+    ruta_salida="salidas/visible_matched.png",
     mostrar=True
 ):
     termica = cv2.imread(ruta_termica, cv2.IMREAD_GRAYSCALE)
@@ -17,10 +17,10 @@ def histogram_matching_termica_a_visible(
         raise FileNotFoundError("No se pudo cargar una de las imágenes.")
 
     # Aplicar histogram matching: Térmica → Visible
-    termica_ajustada = match_histograms(termica, visible).astype(np.uint8)
+    visible_ajustada = match_histograms(visible, termica).astype(np.uint8)
 
     os.makedirs(os.path.dirname(ruta_salida), exist_ok=True)
-    cv2.imwrite(ruta_salida, termica_ajustada)
+    cv2.imwrite(ruta_salida, visible_ajustada)
     print(f"[INFO] Imagen térmica ajustada guardada en: {ruta_salida}")
 
     if mostrar:
@@ -34,16 +34,16 @@ def histogram_matching_termica_a_visible(
         plt.title("Visible (referencia)")
 
         plt.subplot(1, 3, 3)
-        plt.imshow(termica_ajustada, cmap="gray")
-        plt.title("Térmica ajustada")
+        plt.imshow(visible_ajustada, cmap="gray")
+        plt.title("Visible ajustada")
         plt.tight_layout()
         plt.show()
 
-    return termica_ajustada
+    return visible_ajustada
 
 # === EJEMPLO DE USO ===
 ruta_termica = "captures/inverse/thermal_20250710_110814.png"
 ruta_visible = "captures/visible/right/RIGHT_visible_20250710_110814.png"
-ruta_salida = "histogram_matching/termica_matched.png"
+ruta_salida = "histogram_matching/visible_matched.png"
 
-histogram_matching_termica_a_visible(ruta_termica, ruta_visible, ruta_salida)
+histogram_matching_visible_a_termica(ruta_termica, ruta_visible, ruta_salida)
