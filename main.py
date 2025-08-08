@@ -72,20 +72,25 @@ if __name__ == "__main__":
     # image_left_path = "Cameras/captures/visible/left_rect/LEFT_visible_20241030_130522.png"
     # image_right_path = "Cameras/captures/visible/right_rect/RIGHT_visible_20241030_130522.png"
 
-    # image_thermal_path = "./Datasets/TarDAL_RGBT/thermal/00274.png"
-    # image_left_path = "./Datasets/TarDAL_RGBT/rgb/00274.png"
-    # image_right_path = "./Datasets/TarDAL_RGBT/rgb/00274.png"
+    image_thermal_path = "./Datasets/TarDAL_RGBT/thermal/00274.png"
+    image_left_path = "./Datasets/TarDAL_RGBT/rgb/00274.png"
+    image_right_path = "./Datasets/TarDAL_RGBT/rgb/00274.png"
 
-    image_thermal_path = "captures/inverse/thermal_20250710_110814.png"
-    image_left_path = "captures/visible/left/LEFT_visible_20250710_110814.png"
-    image_right_path = "captures/visible/right/RIGHT_visible_20250710_110814.png"
+    # image_thermal_path = "captures/inverse/thermal_20250710_110814.png"
+    # image_left_path = "captures/visible/left/LEFT_visible_20250710_110814.png"
+    # image_right_path = "captures/visible/right/RIGHT_visible_20250710_110814.png"
+
+    # image_thermal_path = "prueba/00388_ir.png"
+    # image_left_path = "prueba/00388_rgb.png"
+    # image_right_path = "prueba/00388_rgb.png"
+
 
     # Extraer nombre base de la imagen
     base_filename = os.path.splitext(os.path.basename(image_thermal_path))[0]
 
     # Umbral y extractor
-    threshold = 10
-    extractor = "superpoint"
+    threshold = 5
+    extractor = "aliked"
 
     # Transformaciones a aplicar
     transformations = [
