@@ -1,52 +1,56 @@
 import cv2
 import numpy as np
 from skimage.exposure import match_histograms
-import matplotlib.pyplot as plt
 import os
+import matplotlib.pyplot as plt
 
-def histogram_matching_termica_a_visible(
-    ruta_termica,
-    ruta_visible,
-    ruta_salida="salidas/termica_matched.png",
-    mostrar=True
-):
-    # Leer imágenes en escala de grises
-    termica = cv2.imread(ruta_termica, cv2.IMREAD_GRAYSCALE)
-    visible = cv2.imread(ruta_visible, cv2.IMREAD_GRAYSCALE)
+def histogram_match_visible_to_thermal(visible_rgb_path, thermal_gray_path, output_path="salidas/visible_matched.png", mostrar=True):
+    # Leer imagen visible en RGB y térmica en escala de grises
+    visible_bgr = cv2.imread(visible_rgb_path)
+    thermal_gray = cv2.imread(thermal_gray_path, cv2.IMREAD_GRAYSCALE)
 
-    if termica is None or visible is None:
+    if visible_bgr is None or thermal_gray is None:
         raise FileNotFoundError("No se pudo cargar una de las imágenes.")
 
-    # Aplicar histogram matching: Térmica → Visible
-    termica_ajustada = match_histograms(termica, visible).astype(np.uint8)
+    # Convertir visible de BGR a YUV (separamos luminancia)
+    visible_yuv = cv2.cvtColor(visible_bgr, cv2.COLOR_BGR2YUV)
+    Y, U, V = cv2.split(visible_yuv)
 
-    # Guardar resultado
-    os.makedirs(os.path.dirname(ruta_salida), exist_ok=True)
-    cv2.imwrite(ruta_salida, termica_ajustada)
-    print(f"[INFO] Imagen térmica ajustada guardada en: {ruta_salida}")
+    # Aplicar histogram matching: canal Y → thermal
+    Y_matched = match_histograms(Y, thermal_gray).astype(np.uint8)
 
-    # Mostrar comparación si se desea
+    # Reconstruir imagen YUV con Y ajustado
+    matched_yuv = cv2.merge([Y_matched, U, V])
+    matched_bgr = cv2.cvtColor(matched_yuv, cv2.COLOR_YUV2BGR)
+
+    # Guardar imagen RGB final
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    cv2.imwrite(output_path, matched_bgr)
+    print(f"[INFO] Imagen visible ajustada guardada en: {output_path}")
+
+    # Mostrar imágenes si se desea
     if mostrar:
         plt.figure(figsize=(12, 4))
         plt.subplot(1, 3, 1)
-        plt.imshow(termica, cmap="gray")
-        plt.title("Térmica original")
+        plt.imshow(cv2.cvtColor(visible_bgr, cv2.COLOR_BGR2RGB))
+        plt.title("Visible original (RGB)")
 
         plt.subplot(1, 3, 2)
-        plt.imshow(visible, cmap="gray")
-        plt.title("Visible (referencia)")
+        plt.imshow(thermal_gray, cmap="gray")
+        plt.title("Térmica (referencia)")
 
         plt.subplot(1, 3, 3)
-        plt.imshow(termica_ajustada, cmap="gray")
-        plt.title("Térmica ajustada")
+        plt.imshow(cv2.cvtColor(matched_bgr, cv2.COLOR_BGR2RGB))
+        plt.title("Visible ajustada (RGB)")
         plt.tight_layout()
         plt.show()
 
-    return termica_ajustada
+    return matched_bgr
 
-# === EJEMPLO DE USO ===
-ruta_termica = "captures/inverse/thermal_20250710_110814.png"
-ruta_visible = "captures/visible/right/RIGHT_visible_20250710_110814.png"
-ruta_salida = "histogram_matching/visible_matched.png"
+# === USO ===
+histogram_match_visible_to_thermal(
+    visible_rgb_path="captures/visible/right/RIGHT_visible_20250710_110814.png",
+    thermal_gray_path="captures/inverse/thermal_20250710_110814.png",
+    output_path="histogram_matching/visible_matched.png"
+)
 
-histogram_matching_termica_a_visible(ruta_termica, ruta_visible, ruta_salida)
