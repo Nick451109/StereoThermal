@@ -63,27 +63,46 @@ def main(
 
 
 if __name__ == "__main__":
+
+    #-------------------- Ejemplo incremento de matches 118 a 125 matches (incorrecto) -------------------
     # Rutas de las imágenes
     # image_thermal_path = "captures/inverse/thermal_20250710_110814.png"
-    # image_left_path = "captures/visible/left/LEFT_visible_20250710_110814.png"
-    # image_right_path = "captures/visible/right/RIGHT_visible_20250710_110814.png"
-
-    # image_thermal_path = "Cameras/captures/thermal/thermal_20241030_130522.png"
-    # image_left_path = "Cameras/captures/visible/left_rect/LEFT_visible_20241030_130522.png"
-    # image_right_path = "Cameras/captures/visible/right_rect/RIGHT_visible_20241030_130522.png"
-
-    image_thermal_path = "./Datasets/TarDAL_RGBT/thermal/00274.png"
-    image_left_path = "./Datasets/TarDAL_RGBT/rgb/00274.png"
-    image_right_path = "./Datasets/TarDAL_RGBT/rgb/00274.png"
+    # image_left_path = "histogram_matching/visible_matched.png"
+    # image_right_path = "histogram_matching/visible_matched.png"
 
     # image_thermal_path = "captures/inverse/thermal_20250710_110814.png"
     # image_left_path = "captures/visible/left/LEFT_visible_20250710_110814.png"
     # image_right_path = "captures/visible/right/RIGHT_visible_20250710_110814.png"
+    #-------------------------------------------------------------------------------------------
 
-    # image_thermal_path = "prueba/00388_ir.png"
-    # image_left_path = "prueba/00388_rgb.png"
-    # image_right_path = "prueba/00388_rgb.png"
 
+
+    #-------------------- Ejemplo incremento de matches 380 a 420 matches -------------------
+    # image_thermal_path = "./Datasets/TarDAL_RGBT/thermal/00370.png"
+    # image_left_path = "./Datasets/TarDAL_RGBT/rgb/00370.png"
+    # image_right_path = "./Datasets/TarDAL_RGBT/rgb/00370.png"
+
+    # image_thermal_path = "./Datasets/TarDAL_RGBT/thermal/00370.png"
+    # image_left_path = "histogram_matching/visible_matched.png"
+    # image_right_path = "histogram_matching/visible_matched.png"
+    #-------------------------------------------------------------------------------------------
+
+
+
+    #-------------------- Ejemplo incremento de matches 16 a 71 matches -------------------
+    # image_thermal_path = "./Datasets/TarDAL_RGBT/thermal/00388.png"
+    # image_left_path = "./Datasets/TarDAL_RGBT/rgb/00388.png"
+    # image_right_path = "./Datasets/TarDAL_RGBT/rgb/00388.png"
+
+    # image_thermal_path = "./Datasets/TarDAL_RGBT/thermal/00388.png"
+    # image_left_path = "histogram_matching/visible_matched.png"
+    # image_right_path = "histogram_matching/visible_matched.png"
+    #-------------------------------------------------------------------------------------------
+
+    image_thermal_path = "Cameras/captures/thermal/thermal_20241030_130522.png"
+    image_left_path = "Cameras/captures/visible/left_rect/LEFT_visible_20241030_130522.png"
+    image_right_path = "Cameras/captures/visible/right_rect/RIGHT_visible_20241030_130522.png"
+    
 
     # Extraer nombre base de la imagen
     base_filename = os.path.splitext(os.path.basename(image_thermal_path))[0]
