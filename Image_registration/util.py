@@ -251,6 +251,46 @@ def evaluate_homography(M, pts0, pts1):
     return np.mean(errors)
 
 
+def evaluate_normalized_mutual_information(imgA, imgB, bins=64):
+    """
+    Calcula NMI entre dos imágenes 2D (uint8).
+    NMI = (H(A) + H(B)) / H(A,B). Devuelve >= 1; cuanto mayor, mejor dependencia.
+    """
+    import numpy as np
+    import cv2
+
+    # Asegurar 2D uint8
+    def to_gray_u8(x):
+        if x.ndim == 3:
+            x = cv2.cvtColor(x, cv2.COLOR_BGR2GRAY)
+        if x.dtype != np.uint8:
+            x = np.clip(x, 0, 255).astype(np.uint8)
+        return x
+
+    A = to_gray_u8(imgA)
+    B = to_gray_u8(imgB)
+
+    # Ajustar tamaño si difieren
+    if A.shape != B.shape:
+        B = cv2.resize(B, (A.shape[1], A.shape[0]), interpolation=cv2.INTER_NEAREST)
+
+    # Histogramas conjuntos y marginales
+    joint_hist, _, _ = np.histogram2d(A.ravel(), B.ravel(), bins=bins, range=[[0,255],[0,255]])
+    joint_prob = joint_hist / (np.sum(joint_hist) + 1e-12)
+    pA = np.sum(joint_prob, axis=1)  # marginal A
+    pB = np.sum(joint_prob, axis=0)  # marginal B
+
+    # Entropías
+    def H(p):
+        p = p[p > 0]
+        return -np.sum(p * np.log(p + 1e-12))
+    HA = H(pA)
+    HB = H(pB)
+    HAB = H(joint_prob.ravel())
+
+    # NMI
+    nmi = (HA + HB) / (HAB + 1e-12)
+    return float(nmi)
 
 
 def filter_and_analyze_matches(matches, scores, threshold=0.75):

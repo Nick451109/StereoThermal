@@ -3,7 +3,7 @@ import torch
 import cv2
 import tifffile as tf
 import numpy as np
-from Image_registration.util import histogram_match_visible_to_thermal
+from Image_registration.util import histogram_match_visible_to_thermal, evaluate_normalized_mutual_information
 from util import *
 from Image_registration import registration
 from Fusion.fusion import *
@@ -82,6 +82,17 @@ if __name__ == "__main__":
     image_thermal_path = "captures/inverse/thermal_20250710_110814.png"
     image_left_path = matched_path
     image_right_path = matched_path
+
+    # PRE
+    vis_pre = cv2.imread(matched_path)           # o image_right_raw_path si no usas matching
+    thr_pre = cv2.imread(image_thermal_path, cv2.IMREAD_GRAYSCALE)
+    nmi_pre = evaluate_normalized_mutual_information(vis_pre, thr_pre)
+    print(f"[METRIC] NMI pre: {nmi_pre:.4f}")
+
+    # POST (después de procesar_imagenes)
+    thr_post = cv2.resize(thr_pre, (image_warped.shape[1], image_warped.shape[0]))
+    nmi_post = evaluate_normalized_mutual_information(image_warped, thr_post)
+    print(f"[METRIC] NMI post: {nmi_post:.4f}")
     #-------------------------------------------------------------------------------------------
 
 
