@@ -141,7 +141,7 @@ def apply_filter(imagen_tensor, tipo_filtro):
         raise ValueError(f"Filtro tipo '{tipo_filtro}' no es válido. "
                          f"Selecciona entre 'grayscale', 'hsv', 'blur', 'contrast', 'canny', 'none'.")
     
-def histogram_match_visible_to_thermal(visible_rgb_path, thermal_gray_path, output_path="Datasets/TarDAL_RGBT/histogram_matched/visible_matched.png", mostrar=True):
+def histogram_match_visible_to_thermal(visible_rgb_path, thermal_gray_path, output_path="Datasets/TarDAL_RGBT/histogram_matched_results/visible_matched.png", mostrar=True):
     # Leer imagen visible en RGB y térmica en escala de grises
     visible_bgr = cv2.imread(visible_rgb_path)
     thermal_gray = cv2.imread(thermal_gray_path, cv2.IMREAD_GRAYSCALE)

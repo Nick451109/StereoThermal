@@ -19,8 +19,8 @@ def main(
     transformation_method="homography",
     threshold=200,
 ):
-    # Carpeta de salida: results/<extractor>/
-    output_dir = os.path.join("results", extractor)
+    # Carpeta de salida: Datasets/TarDAL_RGBT/registration_results/<extractor>/
+    output_dir = os.path.join("Datasets/TarDAL_RGBT/registration_results", extractor)
     os.makedirs(output_dir, exist_ok=True)
 
     # Registro: la térmica se registra a la visible
