@@ -6,6 +6,10 @@ from PIL import Image, ImageEnhance,  ImageFilter
 import torch
 import cv2
 import torch.nn.functional as F
+from skimage.exposure import match_histograms
+import os
+
+
 
 
 def apply_filter_grayscale(imagen_tensor):
@@ -136,6 +140,56 @@ def apply_filter(imagen_tensor, tipo_filtro):
     else:
         raise ValueError(f"Filtro tipo '{tipo_filtro}' no es válido. "
                          f"Selecciona entre 'grayscale', 'hsv', 'blur', 'contrast', 'canny', 'none'.")
+    
+def apply_histogram_matching(visible_rgb_path, thermal_gray_path, output_path="Datasets/TarDAL_RGBT/salidas/visible_matched.png", mostrar=False):
+    """
+    Ajusta sólo la luminancia (Y) de la imagen visible para que su histograma
+    se parezca al de la térmica (en gris). Guarda la imagen y devuelve su ruta.
+
+    Args:
+        visible_rgb_path (str): Ruta de la imagen visible (BGR/RGB en disco).
+        thermal_gray_path (str): Ruta de la imagen térmica (se leerá en gris).
+        output_path (str): Ruta del archivo de salida (se creará la carpeta si no existe).
+        mostrar (bool): Mostrar comparación (opcional).
+
+    Returns:
+        str: Ruta del archivo guardado (output_path).
+    """
+    # Leer imágenes
+    visible_bgr = cv2.imread(visible_rgb_path)
+    thermal_gray = cv2.imread(thermal_gray_path, cv2.IMREAD_GRAYSCALE)
+    if visible_bgr is None or thermal_gray is None:
+        raise FileNotFoundError("No se pudo cargar una de las imágenes.")
+
+    # BGR -> YUV y separar canales
+    visible_yuv = cv2.cvtColor(visible_bgr, cv2.COLOR_BGR2YUV)
+    Y, U, V = cv2.split(visible_yuv)
+
+    # Histogram matching: Y -> térmica
+    Y_matched = match_histograms(Y, thermal_gray).astype(np.uint8)
+
+    # Reconstruir y volver a BGR
+    matched_yuv = cv2.merge([Y_matched, U, V])
+    matched_bgr = cv2.cvtColor(matched_yuv, cv2.COLOR_YUV2BGR)
+
+    # Asegurar carpeta de salida (soporta output_path sin carpeta)
+    out_dir = os.path.dirname(output_path)
+    if out_dir:
+        os.makedirs(out_dir, exist_ok=True)
+    cv2.imwrite(output_path, matched_bgr)
+    print(f"[INFO] Imagen visible ajustada guardada en: {output_path}")
+
+    # (opcional) visualización rápida
+    if mostrar:
+        plt.figure(figsize=(12, 4))
+        plt.subplot(1, 3, 1); plt.imshow(cv2.cvtColor(visible_bgr, cv2.COLOR_BGR2RGB)); plt.title("Visible original")
+        plt.subplot(1, 3, 2); plt.imshow(thermal_gray, cmap="gray"); plt.title("Térmica")
+        plt.subplot(1, 3, 3); plt.imshow(cv2.cvtColor(matched_bgr, cv2.COLOR_BGR2RGB)); plt.title("Visible ajustada")
+        plt.tight_layout(); plt.show()
+
+    # >>> DEVOLVER RUTA <<<
+    return output_path
+
 
 def calcular_distancia_media(pts0, pts1):
     """

@@ -48,9 +48,16 @@ def histogram_match_visible_to_thermal(visible_rgb_path, thermal_gray_path, outp
     return matched_bgr
 
 # === USO ===
+# histogram_match_visible_to_thermal(
+#     visible_rgb_path="captures/visible/right/RIGHT_visible_20250710_110814.png",
+#     thermal_gray_path="captures/inverse/thermal_20250710_110814.png",
+#     output_path="histogram_matching/visible_matched.png"
+# )
+
 histogram_match_visible_to_thermal(
-    visible_rgb_path="captures/visible/right/RIGHT_visible_20250710_110814.png",
+    visible_rgb_path="captures/visible/left/LEFT_visible_20250710_110814.png",
     thermal_gray_path="captures/inverse/thermal_20250710_110814.png",
     output_path="histogram_matching/visible_matched.png"
 )
+
 

@@ -3,6 +3,7 @@ import torch
 import cv2
 import tifffile as tf
 import numpy as np
+from Image_registration.util import apply_histogram_matching
 from util import *
 from Image_registration import registration
 from Fusion.fusion import *
@@ -64,15 +65,29 @@ def main(
 
 if __name__ == "__main__":
 
+    """
+    matched path devuelve la ruta de la imagen visible con histograma ajustado.
+
+
+    """
+
+    #imagen con preprocesado (histograma ajustado)
+    matched_path = apply_histogram_matching(
+        visible_rgb_path="histogram_matching/visible_matched.png",
+        thermal_gray_path="captures/inverse/thermal_20250710_110814.png",
+        output_path="salidas/visible_matched.png",
+        mostrar=True
+    )
+
     #-------------------- Ejemplo incremento de matches 118 a 125 matches (incorrecto) -------------------
     # Rutas de las imágenes
     # image_thermal_path = "captures/inverse/thermal_20250710_110814.png"
-    # image_left_path = "histogram_matching/visible_matched.png"
-    # image_right_path = "histogram_matching/visible_matched.png"
-
-    # image_thermal_path = "captures/inverse/thermal_20250710_110814.png"
     # image_left_path = "captures/visible/left/LEFT_visible_20250710_110814.png"
     # image_right_path = "captures/visible/right/RIGHT_visible_20250710_110814.png"
+
+    # image_thermal_path = "captures/inverse/thermal_20250710_110814.png"
+    # image_left_path = matched_path
+    # image_right_path = matched_path
     #-------------------------------------------------------------------------------------------
 
 
@@ -83,8 +98,8 @@ if __name__ == "__main__":
     # image_right_path = "./Datasets/TarDAL_RGBT/rgb/00370.png"
 
     # image_thermal_path = "./Datasets/TarDAL_RGBT/thermal/00370.png"
-    # image_left_path = "histogram_matching/visible_matched.png"
-    # image_right_path = "histogram_matching/visible_matched.png"
+    # image_left_path = matched_path
+    # image_right_path = matched_path
     #-------------------------------------------------------------------------------------------
 
 
@@ -95,13 +110,9 @@ if __name__ == "__main__":
     # image_right_path = "./Datasets/TarDAL_RGBT/rgb/00388.png"
 
     # image_thermal_path = "./Datasets/TarDAL_RGBT/thermal/00388.png"
-    # image_left_path = "histogram_matching/visible_matched.png"
-    # image_right_path = "histogram_matching/visible_matched.png"
+    # image_left_path = matched_path
+    # image_right_path = matched_path
     #-------------------------------------------------------------------------------------------
-
-    image_thermal_path = "Cameras/captures/thermal/thermal_20241030_130522.png"
-    image_left_path = "Cameras/captures/visible/left_rect/LEFT_visible_20241030_130522.png"
-    image_right_path = "Cameras/captures/visible/right_rect/RIGHT_visible_20241030_130522.png"
     
 
     # Extraer nombre base de la imagen
