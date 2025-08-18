@@ -3,7 +3,7 @@ import torch
 import cv2
 import tifffile as tf
 import numpy as np
-from Image_registration.util import apply_histogram_matching
+from Image_registration.util import histogram_match_visible_to_thermal
 from util import *
 from Image_registration import registration
 from Fusion.fusion import *
@@ -65,34 +65,28 @@ def main(
 
 if __name__ == "__main__":
 
-    """
-    matched path devuelve la ruta de la imagen visible con histograma ajustado.
-
-
-    """
-
-    #imagen con preprocesado (histograma ajustado)
-    matched_path = apply_histogram_matching(
-        visible_rgb_path="histogram_matching/visible_matched.png",
+    # Imagen con preprocesado (histograma ajustado)
+    matched_path = histogram_match_visible_to_thermal(
+        visible_rgb_path="captures/visible/right/RIGHT_visible_20250710_110814.png",
         thermal_gray_path="captures/inverse/thermal_20250710_110814.png",
-        output_path="salidas/visible_matched.png",
         mostrar=True
     )
 
     #-------------------- Ejemplo incremento de matches 118 a 125 matches (incorrecto) -------------------
-    # Rutas de las imágenes
+    # Registro sin preprocesar
     # image_thermal_path = "captures/inverse/thermal_20250710_110814.png"
     # image_left_path = "captures/visible/left/LEFT_visible_20250710_110814.png"
     # image_right_path = "captures/visible/right/RIGHT_visible_20250710_110814.png"
 
-    # image_thermal_path = "captures/inverse/thermal_20250710_110814.png"
-    # image_left_path = matched_path
-    # image_right_path = matched_path
+    #Registro con histogram matching
+    image_thermal_path = "captures/inverse/thermal_20250710_110814.png"
+    image_left_path = matched_path
+    image_right_path = matched_path
     #-------------------------------------------------------------------------------------------
 
 
 
-    #-------------------- Ejemplo incremento de matches 380 a 420 matches -------------------
+    #-------------- Ejemplo incremento de matches 380 a 420 matches -------------------
     # image_thermal_path = "./Datasets/TarDAL_RGBT/thermal/00370.png"
     # image_left_path = "./Datasets/TarDAL_RGBT/rgb/00370.png"
     # image_right_path = "./Datasets/TarDAL_RGBT/rgb/00370.png"
