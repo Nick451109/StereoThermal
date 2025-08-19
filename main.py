@@ -3,7 +3,10 @@ import torch
 import cv2
 import tifffile as tf
 import numpy as np
-from Image_registration.util import histogram_match_visible_to_thermal, evaluate_normalized_mutual_information
+from Image_registration.util import (
+    histogram_match_visible_to_thermal,
+    evaluate_normalized_mutual_information,
+)
 from util import *
 from Image_registration import registration
 from Fusion.fusion import *
@@ -23,6 +26,12 @@ def main(
     output_dir = os.path.join("Datasets/TarDAL_RGBT/registration_results", extractor)
     os.makedirs(output_dir, exist_ok=True)
 
+    # === NMI PRE (visible vs térmica, sin warp) ===
+    vis_pre = cv2.imread(imageRight)  # BGR
+    thr_pre = cv2.imread(imageThermal, cv2.IMREAD_GRAYSCALE)  # Gray
+    nmi_pre = evaluate_normalized_mutual_information(vis_pre, thr_pre)
+    print(f"[METRIC] ({transformation_method}) NMI pre:  {nmi_pre:.4f}")
+
     # Registro: la térmica se registra a la visible
     image_warped, matches, scores, error = registration.procesar_imagenes(
         ruta_imagen0=imageRight,
@@ -38,12 +47,12 @@ def main(
         print(f"[ERROR] Falló el registro con {transformation_method}.")
         return
 
-    # Leer térmica y convertir a [H, W, 1]
-    thermal = cv2.imread(imageThermal, cv2.IMREAD_GRAYSCALE)
-    thermal_resized = cv2.resize(
-        thermal, (image_warped.shape[1], image_warped.shape[0])
-    )
-    thermal_channel = np.expand_dims(thermal_resized, axis=-1)
+    # === NMI POST (visible warpeda vs térmica alineada por tamaño) ===
+    thr_post = cv2.resize(thr_pre, (image_warped.shape[1], image_warped.shape[0]))
+    nmi_post = evaluate_normalized_mutual_information(image_warped, thr_post)
+    print(f"[METRIC] ({transformation_method}) NMI post: {nmi_post:.4f}")
+
+    thermal_channel = np.expand_dims(thr_post, axis=-1)
 
     # Concatenar RGB + térmica → [H, W, 4]
     rgbt_image = np.concatenate([image_warped, thermal_channel], axis=-1)
@@ -67,49 +76,35 @@ if __name__ == "__main__":
 
     # Imagen con preprocesado (histograma ajustado)
     matched_path = histogram_match_visible_to_thermal(
-        visible_rgb_path="captures/visible/right/RIGHT_visible_20250710_110814.png",
-        thermal_gray_path="captures/inverse/thermal_20250710_110814.png",
-        mostrar=True
+        visible_rgb_path="./Datasets/TarDAL_RGBT/rgb/00370.png",
+        thermal_gray_path="./Datasets/TarDAL_RGBT/thermal/00370.png",
+        mostrar=True,
     )
 
-    #-------------------- Ejemplo incremento de matches 118 a 125 matches (incorrecto) -------------------
+    # -------------------- Ejemplo incremento de matches 118 a 125 matches (incorrecto) -------------------
     # Registro sin preprocesar
     # image_thermal_path = "captures/inverse/thermal_20250710_110814.png"
     # image_left_path = "captures/visible/left/LEFT_visible_20250710_110814.png"
     # image_right_path = "captures/visible/right/RIGHT_visible_20250710_110814.png"
 
-    #Registro con histogram matching
-    image_thermal_path = "captures/inverse/thermal_20250710_110814.png"
-    image_left_path = matched_path
-    image_right_path = matched_path
+    # Registro con histogram matching
+    # image_thermal_path = "captures/inverse/thermal_20250710_110814.png"
+    # image_left_path = matched_path
+    # image_right_path = matched_path
 
-    # PRE
-    vis_pre = cv2.imread(matched_path)           # o image_right_raw_path si no usas matching
-    thr_pre = cv2.imread(image_thermal_path, cv2.IMREAD_GRAYSCALE)
-    nmi_pre = evaluate_normalized_mutual_information(vis_pre, thr_pre)
-    print(f"[METRIC] NMI pre: {nmi_pre:.4f}")
+    # -------------------------------------------------------------------------------------------
 
-    # POST (después de procesar_imagenes)
-    thr_post = cv2.resize(thr_pre, (image_warped.shape[1], image_warped.shape[0]))
-    nmi_post = evaluate_normalized_mutual_information(image_warped, thr_post)
-    print(f"[METRIC] NMI post: {nmi_post:.4f}")
-    #-------------------------------------------------------------------------------------------
-
-
-
-    #-------------- Ejemplo incremento de matches 380 a 420 matches -------------------
+    # -------------- Ejemplo incremento de matches 380 a 420 matches -------------------
     # image_thermal_path = "./Datasets/TarDAL_RGBT/thermal/00370.png"
     # image_left_path = "./Datasets/TarDAL_RGBT/rgb/00370.png"
     # image_right_path = "./Datasets/TarDAL_RGBT/rgb/00370.png"
 
-    # image_thermal_path = "./Datasets/TarDAL_RGBT/thermal/00370.png"
-    # image_left_path = matched_path
-    # image_right_path = matched_path
-    #-------------------------------------------------------------------------------------------
+    image_thermal_path = "./Datasets/TarDAL_RGBT/thermal/00370.png"
+    image_left_path = matched_path
+    image_right_path = matched_path
+    # -------------------------------------------------------------------------------------------
 
-
-
-    #-------------------- Ejemplo incremento de matches 16 a 71 matches -------------------
+    # -------------------- Ejemplo incremento de matches 16 a 71 matches -------------------
     # image_thermal_path = "./Datasets/TarDAL_RGBT/thermal/00388.png"
     # image_left_path = "./Datasets/TarDAL_RGBT/rgb/00388.png"
     # image_right_path = "./Datasets/TarDAL_RGBT/rgb/00388.png"
@@ -117,8 +112,7 @@ if __name__ == "__main__":
     # image_thermal_path = "./Datasets/TarDAL_RGBT/thermal/00388.png"
     # image_left_path = matched_path
     # image_right_path = matched_path
-    #-------------------------------------------------------------------------------------------
-    
+    # -------------------------------------------------------------------------------------------
 
     # Extraer nombre base de la imagen
     base_filename = os.path.splitext(os.path.basename(image_thermal_path))[0]
