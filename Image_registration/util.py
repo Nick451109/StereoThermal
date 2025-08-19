@@ -10,8 +10,6 @@ from skimage.exposure import match_histograms
 import os
 
 
-
-
 def apply_filter_grayscale(imagen_tensor):
     """
     Convierte una imagen a escala de grises y replica los canales para mantener la compatibilidad de 3 canales.
@@ -160,12 +158,11 @@ def histogram_match_visible_to_thermal(visible_rgb_path, thermal_gray_path, outp
     matched_yuv = cv2.merge([Y_matched, U, V])
     matched_bgr = cv2.cvtColor(matched_yuv, cv2.COLOR_YUV2BGR)
 
-    # Guardar imagen RGB final
+    # imagen RGB final
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     cv2.imwrite(output_path, matched_bgr)
     print(f"[INFO] Imagen visible ajustada guardada en: {output_path}")
 
-    # Mostrar imágenes si se desea
     if mostrar:
         plt.figure(figsize=(12, 4))
         plt.subplot(1, 3, 1)
@@ -256,8 +253,6 @@ def evaluate_normalized_mutual_information(imgA, imgB, bins=64):
     Calcula NMI entre dos imágenes 2D (uint8).
     NMI = (H(A) + H(B)) / H(A,B). Devuelve >= 1; cuanto mayor, mejor dependencia.
     """
-    import numpy as np
-    import cv2
 
     # Asegurar 2D uint8
     def to_gray_u8(x):
