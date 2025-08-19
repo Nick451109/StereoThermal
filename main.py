@@ -95,13 +95,13 @@ if __name__ == "__main__":
     # -------------------------------------------------------------------------------------------
 
     # -------------- Ejemplo incremento de matches 380 a 420 matches -------------------
-    # image_thermal_path = "./Datasets/TarDAL_RGBT/thermal/00370.png"
-    # image_left_path = "./Datasets/TarDAL_RGBT/rgb/00370.png"
-    # image_right_path = "./Datasets/TarDAL_RGBT/rgb/00370.png"
-
     image_thermal_path = "./Datasets/TarDAL_RGBT/thermal/00370.png"
-    image_left_path = matched_path
-    image_right_path = matched_path
+    image_left_path = "./Datasets/TarDAL_RGBT/rgb/00370.png"
+    image_right_path = "./Datasets/TarDAL_RGBT/rgb/00370.png"
+
+    # image_thermal_path = "./Datasets/TarDAL_RGBT/thermal/00370.png"
+    # image_left_path = matched_path
+    # image_right_path = matched_path
     # -------------------------------------------------------------------------------------------
 
     # -------------------- Ejemplo incremento de matches 16 a 71 matches -------------------
