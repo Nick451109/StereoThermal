@@ -25,6 +25,116 @@ import glob
 
 from skimage.metrics import structural_similarity as ssim
 
+def _read_as_bgr(path):
+
+    '''
+    Garantiza que la imagen de entrada siempre esté en formato BGR de 3 canales
+    incluso si el archivo original está en escala de grises o tiene canal alfa (BGRA).
+
+    Se emplea ya que estos métodos (cv2.circle, cv2.line) de openCV esperan trabajar 
+    sobre imágenes BGR de 3 canales.
+
+    '''
+
+    img = cv2.imread(path, cv2.IMREAD_UNCHANGED)
+    if img is None:
+        raise FileNotFoundError(f"No se pudo leer la imagen: {path}")
+    # Si es 1 canal → BGR para que dibujar sea fácil
+    if len(img.shape) == 2:
+        img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+    elif img.shape[2] == 4:  # BGRA → BGR
+        img = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
+    return img
+
+def visualize_matches(
+    ruta_imagen0: str,
+    ruta_imagen1: str,
+    feats0: dict,
+    feats1: dict,
+    matches01: dict,
+    inliers_idx: np.ndarray | None = None,
+    max_lines: int | None = 600,
+    color=(0, 255, 0),
+    thickness: int = 1,
+    radius: int = 2,
+    alpha: float = 0.6,
+    save_path: str | None = None,
+    show: bool = False,
+):
+    """
+    Dibuja matches entre imagen0 e imagen1 en un lienzo lado a lado.
+    - feats0/feats1: dict con 'keypoints' (N,2) en píxeles.
+    - matches01['matches']: (M,2) con índices (i0, i1).
+    - inliers_idx: índices de matches considerados inliers (opcional).
+
+    OJO
+    Si existen muchos matches, se puede limitar a, por ejemplo, 600.
+    """
+    img0 = _read_as_bgr(ruta_imagen0)
+    img1 = _read_as_bgr(ruta_imagen1)
+
+    h0, w0 = img0.shape[:2]
+    h1, w1 = img1.shape[:2]
+    H = max(h0, h1)
+    W = w0 + w1
+
+    # Canvas negro y pegamos ambas
+    canvas = np.zeros((H, W, 3), dtype=np.uint8)
+    canvas[:h0, :w0] = img0
+    canvas[:h1, w0:w0 + w1] = img1
+
+    # Para overlay semitransparente al dibujar
+    overlay = canvas.copy()
+
+    kpts0 = feats0["keypoints"]  # (N0,2) [x,y]
+    kpts1 = feats1["keypoints"]  # (N1,2) [x,y]
+    matches = matches01["matches"]  # (M,2) índices
+
+    if isinstance(kpts0, np.ndarray) is False:
+        kpts0 = np.asarray(kpts0)
+    if isinstance(kpts1, np.ndarray) is False:
+        kpts1 = np.asarray(kpts1)
+    if isinstance(matches, np.ndarray) is False:
+        matches = np.asarray(matches)
+
+    # ¿Limitar cantidad para no saturar?
+    if max_lines is not None and len(matches) > max_lines:
+        # muestreo uniforme
+        idx = np.linspace(0, len(matches) - 1, max_lines).astype(int)
+        matches = matches[idx]
+
+    # Si pasan inliers, filtramos
+    if inliers_idx is not None:
+        matches = matches[inliers_idx]
+
+    # Dibujo
+    for (i0, i1) in matches:
+        x0, y0 = kpts0[i0]
+        x1, y1 = kpts1[i1]
+        p0 = (int(round(x0)), int(round(y0)))
+        p1 = (int(round(x1 + w0)), int(round(y1)))  # ojo: offset en x
+
+        # puntos
+        cv2.circle(overlay, p0, radius, color, -1, lineType=cv2.LINE_AA)
+        cv2.circle(overlay, p1, radius, color, -1, lineType=cv2.LINE_AA)
+        # línea
+        cv2.line(overlay, p0, p1, color, thickness, lineType=cv2.LINE_AA)
+
+    # Mezclar overlay con el canvas para efecto translúcido
+    vis = cv2.addWeighted(overlay, alpha, canvas, 1 - alpha, 0)
+
+    if save_path is not None:
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        cv2.imwrite(save_path, vis)
+
+    if show:
+        plt.figure(figsize=(14, 6))
+        plt.axis("off")
+        plt.imshow(cv2.cvtColor(vis, cv2.COLOR_BGR2RGB))
+        plt.tight_layout()
+        plt.show()
+
+    return vis
 
 def procesar_imagenes(
     ruta_imagen0,
@@ -36,6 +146,8 @@ def procesar_imagenes(
     filtro_imagen1=None,  # Nuevo parámetro para aplicar filtros a imagen1
     threshold=0,
     transformation_method="homography",
+    visualize=False,  # Nuevo parámetro para activar/desactivar la visualización de keypoints
+    visualize_save_path=None,  # Ruta para guardar la visualización de keypoints (opcional)
 ):
     """
     Procesa dos imágenes para obtener una imagen resultante tras aplicar la transformación de perspectiva.
@@ -115,6 +227,23 @@ def procesar_imagenes(
         # # Obtener los puntos clave y las correspondencias del primer conjunto
         # kpts0, kpts1, matches = feats0["keypoints"], feats1["keypoints"], matches01["matches"]
         # m_kpts0, m_kpts1 = kpts0[matches[..., 0]], kpts1[matches[..., 1]]
+        
+        # === [VISUALIZADOR] Visualizar matches si está activado ===
+        if visualize:
+            try:
+                visualize_matches(
+                    ruta_imagen0=ruta_imagen0,
+                    ruta_imagen1=ruta_imagen1,
+                    feats0=feats0,
+                    feats1=feats1,
+                    matches01=matches01,
+                    save_path=visualize_save_path,
+                    show=False
+                )
+                if visualize_save_path:
+                    print(f"[INFO] Imagen de matches de keypoints guardada en: {visualize_save_path}")
+            except Exception as e:
+                print(f"[WARN] No se pudo generar visualización de keypoints: {e}")
 
         if transformation_method == "homography":
             imagen0_warped, points0, scores, error = apply_homography_transformation(
@@ -484,3 +613,4 @@ def mostrar_correspondencias_mejorada(
 
     except Exception as e:
         print(f"Error al procesar y visualizar las correspondencias: {e}")
+
