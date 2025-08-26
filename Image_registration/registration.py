@@ -86,16 +86,10 @@ def visualize_matches(
     # Para overlay semitransparente al dibujar
     overlay = canvas.copy()
 
-    kpts0 = feats0["keypoints"]  # (N0,2) [x,y]
-    kpts1 = feats1["keypoints"]  # (N1,2) [x,y]
-    matches = matches01["matches"]  # (M,2) índices
+    kpts0 = feats0["keypoints"].detach().cpu().numpy()
+    kpts1 = feats1["keypoints"].detach().cpu().numpy()
+    matches = matches01["matches"].detach().cpu().numpy()
 
-    if isinstance(kpts0, np.ndarray) is False:
-        kpts0 = np.asarray(kpts0)
-    if isinstance(kpts1, np.ndarray) is False:
-        kpts1 = np.asarray(kpts1)
-    if isinstance(matches, np.ndarray) is False:
-        matches = np.asarray(matches)
 
     # ¿Limitar cantidad para no saturar?
     if max_lines is not None and len(matches) > max_lines:
