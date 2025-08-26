@@ -46,6 +46,87 @@ def _read_as_bgr(path):
         img = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
     return img
 
+# === [KEYPOINTS] Helpers para unir puntos a partir de matches ===
+def _pts_from_matches(feats0, feats1, matches01):
+    kpts0 = feats0["keypoints"].detach().cpu().numpy()
+    kpts1 = feats1["keypoints"].detach().cpu().numpy()
+    matches = matches01["matches"].detach().cpu().numpy()
+    if len(matches) == 0:
+        return np.empty((0,2)), np.empty((0,2)), matches
+    pts0 = kpts0[matches[:, 0]]
+    pts1 = kpts1[matches[:, 1]]
+    return pts0, pts1, matches
+
+def compute_inliers_homography(feats0, feats1, matches01, ransac_thresh=5.0):
+    pts0, pts1, matches = _pts_from_matches(feats0, feats1, matches01)
+    if len(matches) < 4:
+        return np.array([], dtype=int)
+    H, mask = cv2.findHomography(pts0, pts1, cv2.RANSAC, ransac_thresh)
+    if H is None or mask is None:
+        return np.array([], dtype=int)
+    return np.where(mask.ravel() == 1)[0]
+
+def compute_inliers_affine_ransac(feats0, feats1, matches01, ransac_thresh=3.0, max_iters=2000):
+    pts0, pts1, matches = _pts_from_matches(feats0, feats1, matches01)
+    if len(matches) < 3:
+        return np.array([], dtype=int)
+    M, inliers = cv2.estimateAffine2D(pts0, pts1, method=cv2.RANSAC,
+                                      ransacReprojThreshold=ransac_thresh,
+                                      maxIters=max_iters, refineIters=10)
+    if M is None or inliers is None:
+        return np.array([], dtype=int)
+    return np.where(inliers.ravel() == 1)[0]
+
+def compute_inliers_similarity_ransac(feats0, feats1, matches01, ransac_thresh=3.0, max_iters=2000):
+    """
+    Similarity (rot+trans+escala uniforme) ≈ estimateAffinePartial2D con RANSAC.
+    """
+    pts0, pts1, matches = _pts_from_matches(feats0, feats1, matches01)
+    if len(matches) < 2:
+        return np.array([], dtype=int)
+    M, inliers = cv2.estimateAffinePartial2D(pts0, pts1, method=cv2.RANSAC,
+                                             ransacReprojThreshold=ransac_thresh,
+                                             maxIters=max_iters, refineIters=10)
+    if M is None or inliers is None:
+        return np.array([], dtype=int)
+    return np.where(inliers.ravel() == 1)[0]
+
+def compute_inliers_rigid_ransac(feats0, feats1, matches01, ransac_thresh=3.0, max_iters=2000):
+    """
+    Rigid (rot+trans, sin escala). Aproximamos usando estimateAffinePartial2D y
+    luego validamos con el mismo mask. Para visualización de inliers sirve igual.
+    """
+    return compute_inliers_similarity_ransac(feats0, feats1, matches01,
+                                             ransac_thresh=ransac_thresh,
+                                             max_iters=max_iters)
+
+def compute_inliers_translation_ransac(feats0, feats1, matches01, ransac_thresh=2.0, max_iters=2000):
+    """
+    RANSAC para traslación pura:
+    - Hipótesis (dx, dy) a partir de un match.
+    - Residual = || (p0 + [dx,dy]) - p1 ||.
+    """
+    pts0, pts1, matches = _pts_from_matches(feats0, feats1, matches01)
+    n = len(matches)
+    if n < 1:
+        return np.array([], dtype=int)
+    best_inliers = []
+    rng = np.random.default_rng(0)
+    for _ in range(max_iters):
+        i = rng.integers(0, n)
+        dx, dy = (pts1[i] - pts0[i])
+        pred = pts0 + np.array([dx, dy])
+        residuals = np.linalg.norm(pred - pts1, axis=1)
+        inliers = np.where(residuals <= ransac_thresh)[0]
+        if len(inliers) > len(best_inliers):
+            best_inliers = inliers
+            # criterio de parada temprano
+            if len(best_inliers) > 0.9 * n:
+                break
+    return np.array(best_inliers, dtype=int)
+
+# === [KEYPOINTS] FIN ===
+
 def visualize_matches(
     ruta_imagen0: str,
     ruta_imagen1: str,
@@ -62,60 +143,83 @@ def visualize_matches(
     show: bool = False,
 ):
     """
-    Dibuja matches entre imagen0 e imagen1 en un lienzo lado a lado.
+    
+    Dibuja matches con INLIERS en VERDE y OUTLIERS en ROJO, y añade conteos.
     - feats0/feats1: dict con 'keypoints' (N,2) en píxeles.
     - matches01['matches']: (M,2) con índices (i0, i1).
     - inliers_idx: índices de matches considerados inliers (opcional).
 
     OJO
     Si existen muchos matches, se puede limitar a, por ejemplo, 600.
+    
     """
     img0 = _read_as_bgr(ruta_imagen0)
     img1 = _read_as_bgr(ruta_imagen1)
-
     h0, w0 = img0.shape[:2]
     h1, w1 = img1.shape[:2]
     H = max(h0, h1)
     W = w0 + w1
 
-    # Canvas negro y pegamos ambas
     canvas = np.zeros((H, W, 3), dtype=np.uint8)
     canvas[:h0, :w0] = img0
     canvas[:h1, w0:w0 + w1] = img1
-
-    # Para overlay semitransparente al dibujar
     overlay = canvas.copy()
 
     kpts0 = feats0["keypoints"].detach().cpu().numpy()
     kpts1 = feats1["keypoints"].detach().cpu().numpy()
     matches = matches01["matches"].detach().cpu().numpy()
 
-
-    # ¿Limitar cantidad para no saturar?
     if max_lines is not None and len(matches) > max_lines:
-        # muestreo uniforme
         idx = np.linspace(0, len(matches) - 1, max_lines).astype(int)
         matches = matches[idx]
+        if inliers_idx is not None:
+            # Reindexar inliers_idx a la submuestra
+            orig_to_sub = {orig: i for i, orig in enumerate(idx)}
+            inliers_idx = np.array([orig_to_sub[i] for i in inliers_idx if i in orig_to_sub], dtype=int)
 
-    # Si pasan inliers, filtramos
-    if inliers_idx is not None:
-        matches = matches[inliers_idx]
+    if inliers_idx is None:
+        inliers_idx = np.array([], dtype=int)
 
-    # Dibujo
-    for (i0, i1) in matches:
+    all_idx = np.arange(len(matches))
+    outliers_idx = np.setdiff1d(all_idx, inliers_idx)
+
+    red = (0, 0, 255)
+    green = (0, 255, 0)
+
+    # OUTLIERS primero
+    for j in outliers_idx:
+        i0, i1 = matches[j]
         x0, y0 = kpts0[i0]
         x1, y1 = kpts1[i1]
         p0 = (int(round(x0)), int(round(y0)))
-        p1 = (int(round(x1 + w0)), int(round(y1)))  # ojo: offset en x
+        p1 = (int(round(x1 + w0)), int(round(y1)))
+        cv2.circle(overlay, p0, radius, red, -1, lineType=cv2.LINE_AA)
+        cv2.circle(overlay, p1, radius, red, -1, lineType=cv2.LINE_AA)
+        cv2.line(overlay, p0, p1, red, thickness, lineType=cv2.LINE_AA)
 
-        # puntos
-        cv2.circle(overlay, p0, radius, color, -1, lineType=cv2.LINE_AA)
-        cv2.circle(overlay, p1, radius, color, -1, lineType=cv2.LINE_AA)
-        # línea
-        cv2.line(overlay, p0, p1, color, thickness, lineType=cv2.LINE_AA)
+    # INLIERS
+    for j in inliers_idx:
+        i0, i1 = matches[j]
+        x0, y0 = kpts0[i0]
+        x1, y1 = kpts1[i1]
+        p0 = (int(round(x0)), int(round(y0)))
+        p1 = (int(round(x1 + w0)), int(round(y1)))
+        cv2.circle(overlay, p0, radius, green, -1, lineType=cv2.LINE_AA)
+        cv2.circle(overlay, p1, radius, green, -1, lineType=cv2.LINE_AA)
+        cv2.line(overlay, p0, p1, green, thickness, lineType=cv2.LINE_AA)
 
-    # Mezclar overlay con el canvas para efecto translúcido
     vis = cv2.addWeighted(overlay, alpha, canvas, 1 - alpha, 0)
+
+    # Conteos
+    total = len(matches)
+    num_in = len(inliers_idx)
+    num_out = total - num_in
+    def put(text, org, color):
+        cv2.putText(vis, text, org, cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0,0,0), 3, cv2.LINE_AA)
+        cv2.putText(vis, text, org, cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 1, cv2.LINE_AA)
+    put(f"Total matches: {total}", (10, 25), (0,0,0))
+    put(f"Inliers: {num_in}",       (10, 50), (0,255,0))
+    put(f"Outliers: {num_out}",     (10, 75), (0,0,255))
 
     if save_path is not None:
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
@@ -225,17 +329,35 @@ def procesar_imagenes(
         # === [VISUALIZADOR] Visualizar matches si está activado ===
         if visualize:
             try:
+                # Elegir el cálculo de inliers acorde al modelo:
+                tm = transformation_method.lower()
+                if tm == "homography":
+                    inliers_idx = compute_inliers_homography(feats0, feats1, matches01, ransac_thresh=5.0)
+                elif tm == "affine":
+                    inliers_idx = compute_inliers_affine_ransac(feats0, feats1, matches01, ransac_thresh=3.0)
+                elif tm == "rigid" or tm == "similarity":
+                    inliers_idx = compute_inliers_similarity_ransac(feats0, feats1, matches01, ransac_thresh=3.0)
+                elif tm == "translation" or tm == "translation2":
+                    inliers_idx = compute_inliers_translation_ransac(feats0, feats1, matches01, ransac_thresh=2.0)
+                elif tm == "rigid_ransac":
+                    inliers_idx = compute_inliers_rigid_ransac(feats0, feats1, matches01, ransac_thresh=3.0)
+                elif tm == "translation_ransac":
+                    inliers_idx = compute_inliers_translation_ransac(feats0, feats1, matches01, ransac_thresh=2.0)
+                else:
+                    inliers_idx = None  # fallback
+
                 visualize_matches(
                     ruta_imagen0=ruta_imagen0,
                     ruta_imagen1=ruta_imagen1,
                     feats0=feats0,
                     feats1=feats1,
                     matches01=matches01,
+                    inliers_idx=inliers_idx,      # Separación por colores inliers/outliers
                     save_path=visualize_save_path,
                     show=False
                 )
                 if visualize_save_path:
-                    print(f"[INFO] Imagen de matches de keypoints guardada en: {visualize_save_path}")
+                    print(f"[INFO] Imagen de matches (verde=inliers, rojo=outliers) guardada en: {visualize_save_path}")
             except Exception as e:
                 print(f"[WARN] No se pudo generar visualización de keypoints: {e}")
 
@@ -294,7 +416,6 @@ def procesar_imagenes(
     except Exception as e:
         print(f"Error al procesar las imágenes: {e}")
         return None, None, None, None
-
 
 def mostrar_correspondencias_mejorada(
     ruta_imagen0,
@@ -607,4 +728,3 @@ def mostrar_correspondencias_mejorada(
 
     except Exception as e:
         print(f"Error al procesar y visualizar las correspondencias: {e}")
-
