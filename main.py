@@ -23,7 +23,7 @@ def main(
     extractor,
     transformation_method="homography",
     threshold=200,
-    usar_histogram_matching=False,
+    usar_histogram_matching=True,
 ):
     # === [RUTA] RESULTADOS DEL REGISTRO (Datasets/TarDAL_RGBT/registration_results/<extractor>/) === 
     base_dir = os.path.join("Datasets/TarDAL_RGBT/registration_results", extractor)
