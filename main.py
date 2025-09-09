@@ -5,6 +5,7 @@ import cv2
 import tifffile as tf
 import numpy as np
 from Image_registration.util import (
+    evaluate_rmse_gray,
     histogram_match_visible_to_thermal,
     evaluate_normalized_mutual_information,
 )
@@ -22,6 +23,7 @@ def main(
     extractor,
     transformation_method="homography",
     threshold=200,
+    usar_histogram_matching=False,
 ):
     # === [RUTA] RESULTADOS DEL REGISTRO (Datasets/TarDAL_RGBT/registration_results/<extractor>/) === 
     base_dir = os.path.join("Datasets/TarDAL_RGBT/registration_results", extractor)
@@ -59,6 +61,13 @@ def main(
     nmi_post = evaluate_normalized_mutual_information(image_warped, thr_post)
     print(f"[METRIC] ({transformation_method}) NMI post: {nmi_post:.4f}")
 
+    # === [RMSE] sobre canal Y igualado vs térmica ===
+    # Convertir image_warped (BGR) a YUV y extraer canal Y
+    if usar_histogram_matching:
+        image_warped_yuv = cv2.cvtColor(image_warped, cv2.COLOR_BGR2YUV)
+        Y_warped = image_warped_yuv[:, :, 0]
+        rmse_post = evaluate_rmse_gray(Y_warped, thr_post)
+        print(f"[METRIC] ({transformation_method}) RMSE post: {rmse_post:.4f}")
 
     # === [CONCATENAR] RGB + térmica → [H, W, 4] ===
     thermal_channel = np.expand_dims(thr_post, axis=-1)
@@ -81,12 +90,25 @@ def main(
 
 if __name__ == "__main__":
 
-    # Imagen con preprocesado (histograma ajustado)
-    matched_path = histogram_match_visible_to_thermal(
-        visible_rgb_path="./Datasets/TarDAL_RGBT/rgb/00370.png",
-        thermal_gray_path="./Datasets/TarDAL_RGBT/thermal/00370.png",
-        mostrar=True,
-    )
+    # Ruta base de la imagen térmica (constante)
+    image_thermal_path = "./Datasets/TarDAL_RGBT/thermal/00370.png"
+
+    # Cambiar esto a True solo cuando quieras aplicar histogram matching
+    APLICAR_HISTOGRAM_MATCHING = True
+
+    if APLICAR_HISTOGRAM_MATCHING:
+        matched_path = histogram_match_visible_to_thermal(
+            visible_rgb_path="./Datasets/TarDAL_RGBT/rgb/00370.png",
+            thermal_gray_path=image_thermal_path,
+            mostrar=True,
+        )
+        image_left_path = matched_path
+        image_right_path = matched_path
+    else:
+        image_left_path = "./Datasets/TarDAL_RGBT/rgb/00370.png"
+        image_right_path = "./Datasets/TarDAL_RGBT/rgb/00370.png"
+
+
 
     # -------------------- Ejemplo incremento de matches 118 a 125 matches (incorrecto) -------------------
     # Registro sin preprocesar
@@ -102,9 +124,9 @@ if __name__ == "__main__":
     # -------------------------------------------------------------------------------------------
 
     # -------------- Ejemplo incremento de matches 380 a 420 matches -------------------
-    image_thermal_path = "./Datasets/TarDAL_RGBT/thermal/00370.png"
-    image_left_path = "./Datasets/TarDAL_RGBT/rgb/00370.png"
-    image_right_path = "./Datasets/TarDAL_RGBT/rgb/00370.png"
+    # image_thermal_path = "./Datasets/TarDAL_RGBT/thermal/00370.png"
+    # image_left_path = "./Datasets/TarDAL_RGBT/rgb/00370.png"
+    # image_right_path = "./Datasets/TarDAL_RGBT/rgb/00370.png"
 
     # image_thermal_path = "./Datasets/TarDAL_RGBT/thermal/00370.png"
     # image_left_path = matched_path
@@ -149,6 +171,7 @@ if __name__ == "__main__":
             extractor=extractor,
             transformation_method=transformation_name,
             threshold=threshold,
+            usar_histogram_matching=APLICAR_HISTOGRAM_MATCHING,
         )
 
     print("END")

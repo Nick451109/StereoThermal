@@ -247,7 +247,6 @@ def evaluate_homography(M, pts0, pts1):
     errors = np.linalg.norm(pts0_transformed - pts1, axis=1)
     return np.mean(errors)
 
-
 def evaluate_normalized_mutual_information(imgA, imgB, bins=64):
     """
     Calcula NMI entre dos imágenes 2D (uint8).
@@ -286,6 +285,18 @@ def evaluate_normalized_mutual_information(imgA, imgB, bins=64):
     # NMI
     nmi = (HA + HB) / (HAB + 1e-12)
     return float(nmi)
+
+def evaluate_rmse_gray(img1, img2):
+    """
+    Calcula el RMSE entre dos imágenes en escala de grises.
+    Se espera que ambas estén del mismo tamaño y tipo uint8 o float32.
+    """
+    if img1.shape != img2.shape:
+        img2 = cv2.resize(img2, (img1.shape[1], img1.shape[0]))
+    img1 = img1.astype(np.float32)
+    img2 = img2.astype(np.float32)
+    mse = np.mean((img1 - img2) ** 2)
+    return np.sqrt(mse)
 
 
 def filter_and_analyze_matches(matches, scores, threshold=0.75):
