@@ -39,6 +39,17 @@ def main(
     nmi_pre = evaluate_normalized_mutual_information(vis_pre, thr_pre)
     print(f"[METRIC] ({transformation_method}) NMI pre:  {nmi_pre:.4f}")
 
+    # === [METRICA] RMSE PRE ===
+    if usar_histogram_matching:
+        try:
+            vis_pre_yuv = cv2.cvtColor(vis_pre, cv2.COLOR_BGR2YUV)
+            Y_pre = vis_pre_yuv[:, :, 0]  # canal de luminancia
+            rmse_pre = evaluate_rmse_gray(Y_pre, thr_pre)
+            print(f"[METRIC] ({transformation_method}) RMSE pre:  {rmse_pre:.4f}")
+        except Exception as e:
+            print(f"[WARN] No se pudo calcular RMSE pre: {e}")
+
+
     # === [REGISTRO] TERMICA ALINEADA A VISIBLE ===
     image_warped, matches, scores, error = registration.procesar_imagenes(
         ruta_imagen0=imageRight,
@@ -61,7 +72,7 @@ def main(
     nmi_post = evaluate_normalized_mutual_information(image_warped, thr_post)
     print(f"[METRIC] ({transformation_method}) NMI post: {nmi_post:.4f}")
 
-    # === [RMSE] sobre canal Y igualado vs térmica ===
+    # === [METRICA] RMSE sobre canal Y igualado vs térmica ===
     # Convertir image_warped (BGR) a YUV y extraer canal Y
     if usar_histogram_matching:
         image_warped_yuv = cv2.cvtColor(image_warped, cv2.COLOR_BGR2YUV)
