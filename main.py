@@ -92,11 +92,10 @@ def main(
         Y_warped = image_warped_yuv[:, :, 0]
         rmse_post = evaluate_rmse_gray(Y_warped, thr_post)
         print(f"[METRIC] ({transformation_method}) RMSE post: {rmse_post:.4f}")
-
-    # === [METRICA] ===
-    if usar_histogram_matching:
         print(f"[METRIC] ({transformation_method}) NRMSE: {evaluate_nrmse(image_warped, thr_post):.4f}")
 
+
+    # === [METRICA] ===
     print(f"[EXP.METRIC] ({transformation_method}) NCC Sobel: {evaluate_ncc_edges(image_warped, thr_post, method='sobel'):.4f}")
     print(f"[EXP.METRIC] ({transformation_method}) PSNR Sobel: {evaluate_psnr_edges(image_warped, thr_post, method='sobel'):.4f}")
     print(f"[EXP.METRIC] ({transformation_method}) SSIM Sobel: {evaluate_ssim_edges(image_warped, thr_post, method='sobel'):.4f}")
