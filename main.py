@@ -8,6 +8,10 @@ from Image_registration.util import (
     evaluate_rmse_gray,
     histogram_match_visible_to_thermal,
     evaluate_normalized_mutual_information,
+    evaluate_nrmse,
+    evaluate_ncc_edges,
+    evaluate_psnr_edges,
+    evaluate_ssim_edges,
 )
 from util import *
 from Image_registration import registration
@@ -25,6 +29,7 @@ def main(
     threshold=200,
     usar_histogram_matching=True,
 ):
+    print("-------------------")
     # === [RUTA] RESULTADOS DEL REGISTRO (Datasets/TarDAL_RGBT/registration_results/<extractor>/) === 
     base_dir = os.path.join("Datasets/TarDAL_RGBT/registration_results", extractor)
     os.makedirs(base_dir, exist_ok=True)
@@ -72,7 +77,7 @@ def main(
     nmi_post = evaluate_normalized_mutual_information(image_warped, thr_post)
     print(f"[METRIC] ({transformation_method}) NMI post: {nmi_post:.4f}")
 
-    # === [METRICA] RMSE sobre canal Y igualado vs térmica ===
+    # === [METRICA] RMSE post sobre canal Y igualado vs térmica ===
     # Convertir image_warped (BGR) a YUV y extraer canal Y
     if usar_histogram_matching:
         image_warped_yuv = cv2.cvtColor(image_warped, cv2.COLOR_BGR2YUV)
@@ -80,6 +85,17 @@ def main(
         rmse_post = evaluate_rmse_gray(Y_warped, thr_post)
         print(f"[METRIC] ({transformation_method}) RMSE post: {rmse_post:.4f}")
 
+    # === [METRICA] ===
+    print(f"[METRIC] ({transformation_method}) NRMSE: {evaluate_nrmse(image_warped, thr_post):.4f}")
+
+    print(f"[METRIC] ({transformation_method}) NCC Sobel: {evaluate_ncc_edges(image_warped, thr_post, method='sobel'):.4f}")
+    print(f"[METRIC] ({transformation_method}) PSNR Sobel: {evaluate_psnr_edges(image_warped, thr_post, method='sobel'):.4f}")
+    print(f"[METRIC] ({transformation_method}) SSIM Sobel: {evaluate_ssim_edges(image_warped, thr_post, method='sobel'):.4f}")
+
+    print(f"[METRIC] ({transformation_method}) NCC Canny: {evaluate_ncc_edges(image_warped, thr_post, method='canny'):.4f}")
+    print(f"[METRIC] ({transformation_method}) PSNR Canny: {evaluate_psnr_edges(image_warped, thr_post, method='canny'):.4f}")
+    print(f"[METRIC] ({transformation_method}) SSIM Canny: {evaluate_ssim_edges(image_warped, thr_post, method='canny'):.4f}")
+    
     # === [CONCATENAR] RGB + térmica → [H, W, 4] ===
     thermal_channel = np.expand_dims(thr_post, axis=-1)
     rgbt_image = np.concatenate([image_warped, thermal_channel], axis=-1)
@@ -97,6 +113,7 @@ def main(
         compression=None,
     )
     print(f"[INFO] Guardada: {output_path}")
+    print("-------------------------------")
 
 
 if __name__ == "__main__":

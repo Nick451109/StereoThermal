@@ -7,6 +7,7 @@ import torch
 import cv2
 import torch.nn.functional as F
 from skimage.exposure import match_histograms
+from skimage.metrics import structural_similarity as ssim
 import os
 
 
@@ -197,6 +198,8 @@ def calcular_distancia_media(pts0, pts1):
     distancias = np.linalg.norm(pts0 - pts1, axis=1)
     return np.mean(distancias)
 
+# === [METRICAS] ===
+
 def evaluate_homography(M, pts0, pts1):
     """
     Evalúa la homografía calculando el error de reproyección.
@@ -298,6 +301,96 @@ def evaluate_rmse_gray(img1, img2):
     mse = np.mean((img1 - img2) ** 2)
     return np.sqrt(mse)
 
+# === [METRICAS CROSS-SPECTRAL EN BORDES] ===
+
+def evaluate_nrmse(img1, img2):
+    """
+    Calcula el NRMSE (Normalized RMSE) entre dos imágenes en escala de grises.
+    Normaliza con el rango dinámico (255 para imágenes uint8).
+    """
+    if img1.shape != img2.shape:
+        img2 = cv2.resize(img2, (img1.shape[1], img1.shape[0]))
+    img1 = img1.astype(np.float32)
+    img2 = img2.astype(np.float32)
+    mse = np.mean((img1 - img2) ** 2)
+    rmse = np.sqrt(mse)
+    nrmse = rmse / 255.0
+    return float(nrmse)
+
+def evaluate_ncc_edges(img1, img2, method="sobel"):
+    """
+    Calcula el NCC (Normalized Cross Correlation) entre bordes de dos imágenes.
+    method: "sobel" o "canny"
+    """
+    if img1.ndim == 3:
+        img1 = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
+    if img2.ndim == 3:
+        img2 = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
+    img2 = cv2.resize(img2, (img1.shape[1], img1.shape[0]))
+
+    if method == "sobel":
+        edges1 = cv2.Sobel(img1, cv2.CV_32F, 1, 1, ksize=3)
+        edges2 = cv2.Sobel(img2, cv2.CV_32F, 1, 1, ksize=3)
+    elif method == "canny":
+        edges1 = cv2.Canny(img1, 100, 200)
+        edges2 = cv2.Canny(img2, 100, 200)
+    else:
+        raise ValueError("Método no válido. Usa 'sobel' o 'canny'.")
+
+    # Normalizar a float
+    edges1 = edges1.astype(np.float32)
+    edges2 = edges2.astype(np.float32)
+
+    num = np.sum((edges1 - edges1.mean()) * (edges2 - edges2.mean()))
+    den = np.sqrt(np.sum((edges1 - edges1.mean())**2) * np.sum((edges2 - edges2.mean())**2) + 1e-12)
+    return float(num / den)
+
+def evaluate_psnr_edges(img1, img2, method="sobel"):
+    """
+    Calcula el PSNR en bordes entre dos imágenes.
+    method: "sobel" o "canny"
+    """
+    if img1.ndim == 3:
+        img1 = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
+    if img2.ndim == 3:
+        img2 = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
+    img2 = cv2.resize(img2, (img1.shape[1], img1.shape[0]))
+
+    if method == "sobel":
+        edges1 = cv2.Sobel(img1, cv2.CV_8U, 1, 1, ksize=3)
+        edges2 = cv2.Sobel(img2, cv2.CV_8U, 1, 1, ksize=3)
+    elif method == "canny":
+        edges1 = cv2.Canny(img1, 100, 200)
+        edges2 = cv2.Canny(img2, 100, 200)
+    else:
+        raise ValueError("Método no válido. Usa 'sobel' o 'canny'.")
+
+    return cv2.PSNR(edges1, edges2)
+
+def evaluate_ssim_edges(img1, img2, method="sobel"):
+    """
+    Calcula el SSIM en bordes entre dos imágenes.
+    method: "sobel" o "canny"
+    """
+    if img1.ndim == 3:
+        img1 = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
+    if img2.ndim == 3:
+        img2 = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
+    img2 = cv2.resize(img2, (img1.shape[1], img1.shape[0]))
+
+    if method == "sobel":
+        edges1 = cv2.Sobel(img1, cv2.CV_8U, 1, 1, ksize=3)
+        edges2 = cv2.Sobel(img2, cv2.CV_8U, 1, 1, ksize=3)
+    elif method == "canny":
+        edges1 = cv2.Canny(img1, 100, 200)
+        edges2 = cv2.Canny(img2, 100, 200)
+    else:
+        raise ValueError("Método no válido. Usa 'sobel' o 'canny'.")
+
+    ssim_val = ssim(edges1, edges2, data_range=edges2.max() - edges2.min())
+    return float(ssim_val)
+
+#== [FIN METRICAS] ===
 
 def filter_and_analyze_matches(matches, scores, threshold=0.75):
     """
@@ -327,7 +420,6 @@ def filter_and_analyze_matches(matches, scores, threshold=0.75):
     print(f"{util_percentage_points:.2f}% of the points are precise")
 
     return reliable_points, average_score, util_percentage_points
-
 
 def apply_afin_transformation(feats0, feats1, matches01, imagen0, imagen1, threshold=50):
     """
