@@ -12,6 +12,7 @@ from Image_registration.util import (
     evaluate_ncc_edges,
     evaluate_psnr_edges,
     evaluate_ssim_edges,
+    evaluate_homography,
 )
 from util import *
 from Image_registration import registration
@@ -71,6 +72,13 @@ def main(
     if image_warped is None:
         print(f"[ERROR] Falló el registro con {transformation_method}.")
         return
+    
+    # === [METRICA] ERROR DE REPROYECCION ===
+    try:
+        if error is not None and isinstance(error, (float, int)):
+            print(f"[METRIC] ({transformation_method}) Error reproyección: {error:.4f}")
+    except Exception as e:
+        print(f"[WARN] No se pudo calcular error de reproyección: {e}")
 
     # === [METRICA] NMI POST (visible warpeda vs térmica alineada por tamaño) ===
     thr_post = cv2.resize(thr_pre, (image_warped.shape[1], image_warped.shape[0]))
@@ -86,16 +94,17 @@ def main(
         print(f"[METRIC] ({transformation_method}) RMSE post: {rmse_post:.4f}")
 
     # === [METRICA] ===
-    print(f"[METRIC] ({transformation_method}) NRMSE: {evaluate_nrmse(image_warped, thr_post):.4f}")
+    if usar_histogram_matching:
+        print(f"[METRIC] ({transformation_method}) NRMSE: {evaluate_nrmse(image_warped, thr_post):.4f}")
 
-    print(f"[METRIC] ({transformation_method}) NCC Sobel: {evaluate_ncc_edges(image_warped, thr_post, method='sobel'):.4f}")
-    print(f"[METRIC] ({transformation_method}) PSNR Sobel: {evaluate_psnr_edges(image_warped, thr_post, method='sobel'):.4f}")
-    print(f"[METRIC] ({transformation_method}) SSIM Sobel: {evaluate_ssim_edges(image_warped, thr_post, method='sobel'):.4f}")
+    print(f"[EXP.METRIC] ({transformation_method}) NCC Sobel: {evaluate_ncc_edges(image_warped, thr_post, method='sobel'):.4f}")
+    print(f"[EXP.METRIC] ({transformation_method}) PSNR Sobel: {evaluate_psnr_edges(image_warped, thr_post, method='sobel'):.4f}")
+    print(f"[EXP.METRIC] ({transformation_method}) SSIM Sobel: {evaluate_ssim_edges(image_warped, thr_post, method='sobel'):.4f}")
 
-    print(f"[METRIC] ({transformation_method}) NCC Canny: {evaluate_ncc_edges(image_warped, thr_post, method='canny'):.4f}")
-    print(f"[METRIC] ({transformation_method}) PSNR Canny: {evaluate_psnr_edges(image_warped, thr_post, method='canny'):.4f}")
-    print(f"[METRIC] ({transformation_method}) SSIM Canny: {evaluate_ssim_edges(image_warped, thr_post, method='canny'):.4f}")
-    
+    print(f"[EXP.METRIC] ({transformation_method}) NCC Canny: {evaluate_ncc_edges(image_warped, thr_post, method='canny'):.4f}")
+    print(f"[EXP.METRIC] ({transformation_method}) PSNR Canny: {evaluate_psnr_edges(image_warped, thr_post, method='canny'):.4f}")
+    print(f"[EXP.METRIC] ({transformation_method}) SSIM Canny: {evaluate_ssim_edges(image_warped, thr_post, method='canny'):.4f}")
+
     # === [CONCATENAR] RGB + térmica → [H, W, 4] ===
     thermal_channel = np.expand_dims(thr_post, axis=-1)
     rgbt_image = np.concatenate([image_warped, thermal_channel], axis=-1)
