@@ -9,6 +9,7 @@ import torch.nn.functional as F
 from skimage.exposure import match_histograms
 from skimage.metrics import structural_similarity as ssim
 import os
+import csv
 
 
 def apply_filter_grayscale(imagen_tensor):
@@ -1029,4 +1030,17 @@ def apply_translation_transformation2(feats0, feats1, matches01, imagen0, imagen
     imagen0_warped, M = apply_translation_torch(imagen0, t_x, t_y)
     error = evaluate_homography(M, pts0, pts1)
     return imagen0_warped, points0, scores, error
-    
+
+def save_metrics_to_csv(csv_path, data, fieldnames):
+    """
+    Guarda un diccionario de métricas en un archivo CSV.
+    - csv_path: ruta al archivo .csv
+    - data: diccionario con {columna: valor}
+    - fieldnames: lista de nombres de columna
+    """
+    file_exists = os.path.isfile(csv_path)
+    with open(csv_path, mode="a", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        if not file_exists:
+            writer.writeheader()  # Solo una vez al inicio
+        writer.writerow(data)

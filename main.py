@@ -13,6 +13,7 @@ from Image_registration.util import (
     evaluate_psnr_edges,
     evaluate_ssim_edges,
     evaluate_homography,
+    save_metrics_to_csv,
 )
 from util import *
 from Image_registration import registration
@@ -122,6 +123,37 @@ def main(
         compression=None,
     )
     print(f"[INFO] .TIFF Guardado: {output_path}")
+
+    # === [GUARDAR METRICAS] ===
+    csv_path = os.path.join(base_dir, "metrics_results.csv")
+    fieldnames = [
+        "output_name", "extractor", "transformation",
+        "NMI_pre", "RMSE_pre", "Error_reprojection", "NMI_post", "RMSE_post", "NRMSE",
+        "NCC_Sobel", "PSNR_Sobel", "SSIM_Sobel",
+        "NCC_Canny", "PSNR_Canny", "SSIM_Canny"
+    ]
+
+    data = {
+        "output_name": output_name,
+        "extractor": extractor,
+        "transformation": transformation_method,
+        "NMI_pre": nmi_pre,
+        "RMSE_pre": rmse_pre if usar_histogram_matching else None,
+        "Error_reprojection": error,
+        "NMI_post": nmi_post,
+        "RMSE_post": rmse_post if usar_histogram_matching else None,
+        "NRMSE": evaluate_nrmse(image_warped_gray, thr_post) if usar_histogram_matching else None,
+        "NCC_Sobel": evaluate_ncc_edges(image_warped, thr_post, method='sobel'),
+        "PSNR_Sobel": evaluate_psnr_edges(image_warped, thr_post, method='sobel'),
+        "SSIM_Sobel": evaluate_ssim_edges(image_warped, thr_post, method='sobel'),
+        "NCC_Canny": evaluate_ncc_edges(image_warped, thr_post, method='canny'),
+        "PSNR_Canny": evaluate_psnr_edges(image_warped, thr_post, method='canny'),
+        "SSIM_Canny": evaluate_ssim_edges(image_warped, thr_post, method='canny'),
+    }
+
+    save_metrics_to_csv(csv_path, data, fieldnames)
+    print(f"[INFO] Métricas guardadas en {csv_path}")
+
     print("----------------------------------------------------------------")
 
 
