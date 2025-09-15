@@ -124,7 +124,7 @@ def apply_filter(imagen_tensor, tipo_filtro):
     """
     tipo_filtro = tipo_filtro.lower() if tipo_filtro else "none"
     if tipo_filtro == "none":
-        print("No se aplicará ningún filtro.")
+        #print("No se aplicará ningún filtro.")
         return imagen_tensor
     elif tipo_filtro == "grayscale":
         return apply_filter_grayscale(imagen_tensor)

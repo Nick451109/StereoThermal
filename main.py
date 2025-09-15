@@ -30,7 +30,7 @@ def main(
     threshold=200,
     usar_histogram_matching=True,
 ):
-    print("-------------------")
+    print("----------------------------------------------------------------")
     # === [RUTA] RESULTADOS DEL REGISTRO (Datasets/TarDAL_RGBT/registration_results/<extractor>/) === 
     base_dir = os.path.join("Datasets/TarDAL_RGBT/registration_results", extractor)
     os.makedirs(base_dir, exist_ok=True)
@@ -92,7 +92,8 @@ def main(
         Y_warped = image_warped_yuv[:, :, 0]
         rmse_post = evaluate_rmse_gray(Y_warped, thr_post)
         print(f"[METRIC] ({transformation_method}) RMSE post: {rmse_post:.4f}")
-        print(f"[METRIC] ({transformation_method}) NRMSE: {evaluate_nrmse(image_warped, thr_post):.4f}")
+        image_warped_gray = cv2.cvtColor(image_warped, cv2.COLOR_BGR2GRAY)
+        print(f"[METRIC] ({transformation_method}) NRMSE: {evaluate_nrmse(image_warped_gray, thr_post):.4f}")
 
 
     # === [METRICA] ===
@@ -120,29 +121,29 @@ def main(
         metadata={"description": f"RGB + Térmico con {transformation_method}"},
         compression=None,
     )
-    print(f"[INFO] Guardada: {output_path}")
-    print("-------------------------------")
+    print(f"[INFO] .TIFF Guardado: {output_path}")
+    print("----------------------------------------------------------------")
 
 
 if __name__ == "__main__":
 
     # Ruta base de la imagen térmica (constante)
-    image_thermal_path = "./Datasets/TarDAL_RGBT/thermal/00370.png"
+    image_thermal_path = "./Datasets/parallax_Tardal/thermal_out/00082.png"
 
     # Cambiar esto a True solo cuando quieras aplicar histogram matching
     APLICAR_HISTOGRAM_MATCHING = True
 
     if APLICAR_HISTOGRAM_MATCHING:
         matched_path = histogram_match_visible_to_thermal(
-            visible_rgb_path="./Datasets/TarDAL_RGBT/rgb/00370.png",
+            visible_rgb_path="./Datasets/parallax_Tardal/rgb_out/00082.png",
             thermal_gray_path=image_thermal_path,
             mostrar=True,
         )
         image_left_path = matched_path
         image_right_path = matched_path
     else:
-        image_left_path = "./Datasets/TarDAL_RGBT/rgb/00370.png"
-        image_right_path = "./Datasets/TarDAL_RGBT/rgb/00370.png"
+        image_left_path = "./Datasets/parallax_Tardal/rgb_out/00082.png"
+        image_right_path = "./Datasets/parallax_Tardal/rgb_out/00082.png"
 
 
 
@@ -183,7 +184,7 @@ if __name__ == "__main__":
     base_filename = os.path.splitext(os.path.basename(image_thermal_path))[0]
 
     # Umbral y extractor
-    threshold = 5
+    threshold = 0
     extractor = "aliked"
 
     # Transformaciones a aplicar

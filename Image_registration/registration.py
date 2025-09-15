@@ -263,13 +263,12 @@ def procesar_imagenes(
         PIL.Image: Imagen resultante tras la transformación de perspectiva.
         Actualmente se regresa una imagen tipo numpy array en BGR
     """
-    print("Procesando imagenes..")
-    print("Extractor:", extractor_tipo)
-    print("Método de transformación:", transformation_method)
+    print("[INFO] Procesando imagenes..")
+    print("[INFO] Método de transformación:", transformation_method)
     # Configurar el dispositivo
     if dispositivo is None:
         dispositivo = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print("Dispositivo utilizado:", dispositivo)
+    print("[DEVICE] Dispositivo utilizado:", dispositivo)
 
     # Inicializar extractor y matcher según el tipo especificado
     extractor_dict = {
@@ -301,7 +300,7 @@ def procesar_imagenes(
         )
 
     extractor, matcher = extractor_dict[extractor_tipo.lower()]
-    print(f"[INFO] Extractor: {type(extractor)} - Matcher: {type(matcher)}")
+    print(f"[INFO] Extractor: {extractor.__class__.__name__} - Matcher: {matcher.__class__.__name__}")
 
     try:
         # Cargar y preparar las imágenes
@@ -318,9 +317,9 @@ def procesar_imagenes(
 
         # Emparejar características
         matches01 = matcher({"image0": feats0, "image1": feats1})
-        print(f"[INFO] Matches: {len(matches01['matches'])}")
+        #print(f"[INFO] Matches: {len(matches01['matches'])}")
         feats0, feats1, matches01 = [rbd(x) for x in [feats0, feats1, matches01]]
-        print(f"[INFO] Matches después de rbd: {len(matches01['matches'])}")
+        #print(f"[INFO] Matches después de rbd: {len(matches01['matches'])}")
 
         # # Obtener los puntos clave y las correspondencias del primer conjunto
         # kpts0, kpts1, matches = feats0["keypoints"], feats1["keypoints"], matches01["matches"]
@@ -357,7 +356,7 @@ def procesar_imagenes(
                     show=False
                 )
                 if visualize_save_path:
-                    print(f"[INFO] Imagen de matches (verde=inliers, rojo=outliers) guardada en: {visualize_save_path}")
+                    print(f"[INFO] Imagen de inliers/outliers guardada en: {visualize_save_path}")
             except Exception as e:
                 print(f"[WARN] No se pudo generar visualización de keypoints: {e}")
 
@@ -409,7 +408,7 @@ def procesar_imagenes(
         # resultado_pil = to_pil_image(imagen0_warped_tensor.cpu())
 
         print(
-            f"shape: {imagen0_warped.shape} - Matches: {len(points0)} - Score: {len(scores)}"
+            f"[INFO] shape: {imagen0_warped.shape} - Matches: {len(points0)} - Score: {len(scores)}"
         )
         return imagen0_warped, points0, scores, error
 
