@@ -1031,16 +1031,26 @@ def apply_translation_transformation2(feats0, feats1, matches01, imagen0, imagen
     error = evaluate_homography(M, pts0, pts1)
     return imagen0_warped, points0, scores, error
 
-def save_metrics_to_csv(csv_path, data, fieldnames):
+def save_metrics_to_csv(csv_path, data, fieldnames, decimals=6):
     """
-    Guarda un diccionario de métricas en un archivo CSV.
+    Guarda un diccionario de métricas en un archivo CSV con formato controlado.
     - csv_path: ruta al archivo .csv
     - data: diccionario con {columna: valor}
     - fieldnames: lista de nombres de columna
+    - decimals: número de decimales para guardar
     """
+    def format_val(val):
+        if isinstance(val, (float, int)):
+            return f"{val:.{decimals}f}"  # convierte a string con N decimales
+        return val
+
+    # Formatear los datos
+    formatted_data = {k: format_val(v) for k, v in data.items()}
+
+    # Guardar en CSV
     file_exists = os.path.isfile(csv_path)
     with open(csv_path, mode="a", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         if not file_exists:
-            writer.writeheader()  # Solo una vez al inicio
-        writer.writerow(data)
+            writer.writeheader()
+        writer.writerow(formatted_data)

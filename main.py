@@ -128,6 +128,7 @@ def main(
     csv_path = os.path.join(base_dir, "metrics_results.csv")
     fieldnames = [
         "output_name", "extractor", "transformation",
+        "Matches",
         "NMI_pre", "RMSE_pre", "Error_reprojection", "NMI_post", "RMSE_post", "NRMSE",
         "NCC_Sobel", "PSNR_Sobel", "SSIM_Sobel",
         "NCC_Canny", "PSNR_Canny", "SSIM_Canny"
@@ -137,6 +138,7 @@ def main(
         "output_name": output_name,
         "extractor": extractor,
         "transformation": transformation_method,
+        "Matches": len(matches) if matches is not None else 0,
         "NMI_pre": nmi_pre,
         "RMSE_pre": rmse_pre if usar_histogram_matching else None,
         "Error_reprojection": error,
@@ -150,6 +152,7 @@ def main(
         "PSNR_Canny": evaluate_psnr_edges(image_warped, thr_post, method='canny'),
         "SSIM_Canny": evaluate_ssim_edges(image_warped, thr_post, method='canny'),
     }
+
 
     save_metrics_to_csv(csv_path, data, fieldnames)
     print(f"[INFO] Métricas guardadas en {csv_path}")
