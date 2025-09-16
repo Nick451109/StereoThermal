@@ -13,7 +13,7 @@ from Image_registration.util import (
     evaluate_psnr_edges,
     evaluate_ssim_edges,
     evaluate_homography,
-    save_metrics_to_csv,
+    save_metrics_to_excel,
 )
 from util import *
 from Image_registration import registration
@@ -125,7 +125,7 @@ def main(
     print(f"[INFO] .TIFF Guardado: {output_path}")
 
     # === [GUARDAR METRICAS] ===
-    csv_path = os.path.join(base_dir, "metrics_results.csv")
+    xlsx_path = os.path.join(base_dir, "metrics_results.xlsx")
     fieldnames = [
         "output_name", "extractor", "transformation",
         "Matches",
@@ -154,8 +154,8 @@ def main(
     }
 
 
-    save_metrics_to_csv(csv_path, data, fieldnames)
-    print(f"[INFO] Métricas guardadas en {csv_path}")
+    save_metrics_to_excel(xlsx_path, data, fieldnames)
+    print(f"[INFO] Métricas guardadas en {xlsx_path}")
 
     print("----------------------------------------------------------------")
 
@@ -163,22 +163,22 @@ def main(
 if __name__ == "__main__":
 
     # Ruta base de la imagen térmica (constante)
-    image_thermal_path = "./Datasets/parallax_Tardal/thermal_out/00082.png"
+    image_thermal_path = "./Datasets/parallax_Tardal/thermal_out/00150.png"
 
     # Cambiar esto a True solo cuando quieras aplicar histogram matching
     APLICAR_HISTOGRAM_MATCHING = True
 
     if APLICAR_HISTOGRAM_MATCHING:
         matched_path = histogram_match_visible_to_thermal(
-            visible_rgb_path="./Datasets/parallax_Tardal/rgb_out/00082.png",
+            visible_rgb_path="./Datasets/parallax_Tardal/rgb_out/00150.png",
             thermal_gray_path=image_thermal_path,
             mostrar=True,
         )
         image_left_path = matched_path
         image_right_path = matched_path
     else:
-        image_left_path = "./Datasets/parallax_Tardal/rgb_out/00082.png"
-        image_right_path = "./Datasets/parallax_Tardal/rgb_out/00082.png"
+        image_left_path = "./Datasets/parallax_Tardal/rgb_out/00150.png"
+        image_right_path = "./Datasets/parallax_Tardal/rgb_out/00150.png"
 
 
 
@@ -220,7 +220,7 @@ if __name__ == "__main__":
 
     # Umbral y extractor
     threshold = 0
-    extractor = "aliked"
+    extractor = "disk"
 
     # Transformaciones a aplicar
     transformations = [

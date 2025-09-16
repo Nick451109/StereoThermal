@@ -10,6 +10,7 @@ from skimage.exposure import match_histograms
 from skimage.metrics import structural_similarity as ssim
 import os
 import csv
+import pandas as pd
 
 
 def apply_filter_grayscale(imagen_tensor):
@@ -1031,26 +1032,33 @@ def apply_translation_transformation2(feats0, feats1, matches01, imagen0, imagen
     error = evaluate_homography(M, pts0, pts1)
     return imagen0_warped, points0, scores, error
 
-def save_metrics_to_csv(csv_path, data, fieldnames, decimals=6):
-    """
-    Guarda un diccionario de métricas en un archivo CSV con formato controlado.
-    - csv_path: ruta al archivo .csv
-    - data: diccionario con {columna: valor}
-    - fieldnames: lista de nombres de columna
-    - decimals: número de decimales para guardar
-    """
-    def format_val(val):
-        if isinstance(val, (float, int)):
-            return f"{val:.{decimals}f}"  # convierte a string con N decimales
-        return val
 
-    # Formatear los datos
-    formatted_data = {k: format_val(v) for k, v in data.items()}
+def save_metrics_to_excel(xlsx_path, data, fieldnames, decimals=6):
+    # Redondear y formatear los valores
+    formatted_data = {}
+    for k, v in data.items():
+        if isinstance(v, (float, int)):
+            formatted_data[k] = round(v, decimals)
+        else:
+            formatted_data[k] = v
 
-    # Guardar en CSV
-    file_exists = os.path.isfile(csv_path)
-    with open(csv_path, mode="a", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
-        if not file_exists:
-            writer.writeheader()
-        writer.writerow(formatted_data)
+    df = pd.DataFrame([[formatted_data.get(col, None) for col in fieldnames]], columns=fieldnames)
+
+    # Si existe → append, si no → crear nuevo
+    if os.path.exists(xlsx_path):
+        book = pd.ExcelWriter(xlsx_path, engine="openpyxl", mode="a", if_sheet_exists="overlay")
+        startrow = book.sheets['Sheet1'].max_row
+        df.to_excel(book, sheet_name="Sheet1", index=False, header=False, startrow=startrow)
+        book.close()
+    else:
+        # Aquí aplicamos estilo directamente
+        styled = df.style.set_table_styles(
+            [
+                {"selector": "th", "props": "background-color: #4CAF50; color: white; text-align: center;"},
+                {"selector": "td", "props": "text-align: center;"}
+            ]
+        ).format(precision=decimals)
+
+        styled.to_excel(xlsx_path, index=False, sheet_name="Sheet1", engine="openpyxl")
+
+
