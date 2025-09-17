@@ -30,10 +30,12 @@ def main(
     transformation_method="homography",
     threshold=200,
     usar_histogram_matching=True,
+    base_dir=None,
 ):
     print("----------------------------------------------------------------")
     # === [RUTA] RESULTADOS DEL REGISTRO (Datasets/TarDAL_RGBT/registration_results/<extractor>/) === 
-    base_dir = os.path.join("Datasets/TarDAL_RGBT/registration_results", extractor)
+    if base_dir is None:
+        base_dir = os.path.join("results", extractor)  # 👈 ahora siempre dentro de results/
     os.makedirs(base_dir, exist_ok=True)
 
     # === [RUTA] RESULTADOS VISUALIZADOR DE KEYPOINTS === 
@@ -156,8 +158,11 @@ def main(
 
     save_metrics_to_excel(xlsx_path, data, fieldnames)
     print(f"[INFO] Métricas guardadas en {xlsx_path}")
-
     print("----------------------------------------------------------------")
+    
+    return image_warped, matches, scores, error, data
+
+
 
 
 if __name__ == "__main__":

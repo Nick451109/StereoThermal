@@ -82,7 +82,7 @@ def run_batch(
                 os.makedirs(trans_dir, exist_ok=True)
 
                 # === Ejecutar main.py ===
-                image_warped, matches, scores, error = main(
+                result = main(
                     imageLeft=image_left_path,
                     imageRight=image_right_path,
                     imageThermal=thermal_path,
@@ -91,7 +91,17 @@ def run_batch(
                     transformation_method=transformation_name,
                     threshold=threshold,
                     usar_histogram_matching=aplicar_histogram_matching,
+                    base_dir=extractor_dir
                 )
+
+                # Saltar si main devolvió None
+                if result is None:
+                    print(f"[WARN] Se omitió {base_filename} con {transformation_name} ({extractor}) por falta de matches.")
+                    continue
+
+                image_warped, matches, scores, error, data = result
+
+
 
                 # === Guardar métricas en Excel global y por extractor ===
                 fieldnames = [
