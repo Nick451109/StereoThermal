@@ -142,7 +142,7 @@ def apply_filter(imagen_tensor, tipo_filtro):
         raise ValueError(f"Filtro tipo '{tipo_filtro}' no es válido. "
                          f"Selecciona entre 'grayscale', 'hsv', 'blur', 'contrast', 'canny', 'none'.")
     
-def histogram_match_visible_to_thermal(visible_rgb_path, thermal_gray_path, output_path="Datasets/TarDAL_RGBT/histogram_matched_results/visible_matched.png", mostrar=True):
+def histogram_match_visible_to_thermal(visible_rgb_path, thermal_gray_path, output_path="histogram_matched_results/visible_matched.png", mostrar=True):
     # Leer imagen visible en RGB y térmica en escala de grises
     visible_bgr = cv2.imread(visible_rgb_path)
     thermal_gray = cv2.imread(thermal_gray_path, cv2.IMREAD_GRAYSCALE)
@@ -534,7 +534,6 @@ def apply_homography_transformation(feats0, feats1, matches01, imagen0, imagen1,
     error = evaluate_homography(M, pts0, pts1)
     return imagen0_warped, points0, scores, error
 
-
 def apply_similarity_transformation(feats0, feats1, matches01, imagen0, imagen1, threshold=50):
     """
     Aplica una transformación de similaridad para registrar imagen0 con respecto a imagen1.
@@ -598,7 +597,6 @@ def apply_similarity_transformation(feats0, feats1, matches01, imagen0, imagen1,
 
     error = evaluate_homography(M, pts0, pts1)
     return imagen0_warped, points0, scores, error
-
 
 def apply_rigid_transformation(feats0, feats1, matches01, imagen0, imagen1, threshold=50):
     """
@@ -680,7 +678,6 @@ def apply_rigid_transformation(feats0, feats1, matches01, imagen0, imagen1, thre
 
     error = evaluate_homography(M, pts0, pts1)
     return imagen0_warped, points0, scores, error
-
 
 def apply_rigid_transformation_ransac(feats0, feats1, matches01, imagen0, imagen1, threshold=50, ransac_iterations=1000, ransac_threshold=5.0):
     # Extraer los emparejamientos y las puntuaciones
@@ -831,8 +828,6 @@ def apply_translation_transformation(feats0, feats1, matches01, imagen0, imagen1
     error = evaluate_homography(M, pts0, pts1)
     return imagen0_warped, points0, scores, error
 
-
-
 def apply_translation_transformation_ransac(feats0, feats1, matches01, imagen0, imagen1, threshold=1, ransacReprojThreshold=5.0):
     """
     Aplica una transformación de traslación para registrar imagen0 con respecto a imagen1 utilizando RANSAC.
@@ -907,7 +902,6 @@ def apply_translation_transformation_ransac(feats0, feats1, matches01, imagen0, 
 
     error = evaluate_homography(M, pts0, pts1)
     return imagen0_warped, points0, scores, error
-
 
 def apply_translation_torch(imagen, t_x, t_y):
     """
@@ -1031,7 +1025,6 @@ def apply_translation_transformation2(feats0, feats1, matches01, imagen0, imagen
     imagen0_warped, M = apply_translation_torch(imagen0, t_x, t_y)
     error = evaluate_homography(M, pts0, pts1)
     return imagen0_warped, points0, scores, error
-
 
 def save_metrics_to_excel(xlsx_path, data, fieldnames, decimals=6):
     # Redondear y formatear los valores
