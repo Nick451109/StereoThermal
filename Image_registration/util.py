@@ -200,8 +200,63 @@ def calcular_distancia_media(pts0, pts1):
     distancias = np.linalg.norm(pts0 - pts1, axis=1)
     return np.mean(distancias)
 
-# === [METRICAS] ===
+# ======================================
+# [INICIO METRICAS] 
+# ======================================
 
+# === [METRICAS LOCALES] ===
+def count_matches(matches):
+    """
+    [Métrica local]
+    Número total de matches detectados por el matcher (LightGlue, etc.).
+    """
+    return len(matches) if matches is not None else 0
+
+def count_inliers(mask):
+    """
+    [Métrica local]
+    Número de inliers después de aplicar RANSAC al modelo geométrico.
+    """
+    if mask is None:
+        return 0
+    return int(np.sum(mask))
+
+def count_outliers(num_matches, num_inliers):
+    """
+    [Métrica local]
+    Número de outliers = matches totales - inliers.
+    """
+    return max(0, num_matches - num_inliers)
+
+def compute_inlier_ratio(num_inliers, num_matches):
+    """
+    [Métrica local]
+    Proporción de inliers respecto al total de matches.
+    """
+    if num_matches == 0:
+        return 0.0
+    return num_inliers / num_matches
+
+def compute_outlier_ratio(num_outliers, num_matches):
+    """
+    [Métrica local]
+    Proporción de outliers respecto al total de matches.
+    """
+    if num_matches == 0:
+        return 0.0
+    return num_outliers / num_matches
+
+def compute_matching_score(num_inliers, pts0, pts1):
+    """
+    [Métrica local]
+    Matching Score (HPatches-style): inliers / min(#keypoints en cada imagen).
+    """
+    min_kpts = min(len(pts0), len(pts1))
+    if min_kpts == 0:
+        return 0.0
+    return num_inliers / min_kpts
+
+# === [METRICAS GLOBALES] ===
 def evaluate_homography(M, pts0, pts1):
     """
     Evalúa la homografía calculando el error de reproyección.
@@ -304,7 +359,6 @@ def evaluate_rmse_gray(img1, img2):
     return np.sqrt(mse)
 
 # === [METRICAS CROSS-SPECTRAL EN BORDES] ===
-
 def evaluate_nrmse(img1, img2):
     """
     Calcula el NRMSE (Normalized RMSE) entre dos imágenes en escala de grises.
@@ -392,7 +446,107 @@ def evaluate_ssim_edges(img1, img2, method="sobel"):
     ssim_val = ssim(edges1, edges2, data_range=edges2.max() - edges2.min())
     return float(ssim_val)
 
-#== [FIN METRICAS] ===
+# == [PROCESAR METRICAS LOCALES - GLOBALES] ===
+def compute_local_metrics(pts0, pts1, matches, mask, M):
+    """
+    Calcula todas las métricas locales y el error de reproyección.
+    Maneja correctamente el caso en que no existe máscara (sin RANSAC).
+    Retorna un diccionario con valores compatibles para exportar a Excel.
+    """
+
+    # --- Total de matches ---
+    num_matches = count_matches(matches)
+
+    # Si no hay matches, devolver todo como N/A
+    if num_matches == 0:
+        return {
+            "Matches": 0,
+            "Inliers": "N/A",
+            "Outliers": "N/A",
+            "Inlier_ratio": "N/A",
+            "Outlier_ratio": "N/A",
+            "Matching_score": "N/A",
+            "Error_reprojection": "N/A",
+            "RANSAC": "No"
+        }
+
+    # --- Si hay máscara (modelo robusto) ---
+    if mask is not None:
+        num_inliers = count_inliers(mask)
+        num_outliers = count_outliers(num_matches, num_inliers)
+        inlier_ratio = round(compute_inlier_ratio(num_inliers, num_matches), 4)
+        outlier_ratio = round(compute_outlier_ratio(num_outliers, num_matches), 4)
+        matching_score = round(compute_matching_score(num_inliers, pts0, pts1), 4)
+        ransac_status = "Sí"
+    else:
+        # --- Sin RANSAC: no hay información real de inliers/outliers ---
+        num_inliers = "N/A"
+        num_outliers = "N/A"
+        inlier_ratio = "Sin RANSAC"
+        outlier_ratio = "Sin RANSAC"
+        matching_score = "N/A"
+        ransac_status = "No"
+
+    # --- Error de reproyección ---
+    if M is not None and pts0.size > 0 and pts1.size > 0:
+        error = round(evaluate_homography(M, pts0, pts1), 4)
+    else:
+        error = "N/A"
+
+    # --- Retornar diccionario completo ---
+    return {
+        "Matches": num_matches,
+        "Inliers": num_inliers,
+        "Outliers": num_outliers,
+        "Inlier_ratio": inlier_ratio,
+        "Outlier_ratio": outlier_ratio,
+        "Matching_score": matching_score,
+        "Error_reprojection": error,
+        "RANSAC": ransac_status
+    }
+
+def compute_all_metrics(image_warped, thermal, usar_histogram_matching=True):
+    """
+    Calcula todas las métricas globales entre la imagen registrada (RGB) y la térmica.
+    Combina NMI, RMSE, NRMSE, NCC, PSNR y SSIM en bordes (Sobel y Canny).
+
+    Parámetros:
+        image_warped (np.ndarray): Imagen registrada (BGR o RGB).
+        thermal (np.ndarray): Imagen térmica (grayscale).
+        usar_histogram_matching (bool): Si es True, calcula RMSE/NRMSE sobre canal Y.
+
+    Retorna:
+        dict: métricas globales con formato estandarizado para exportar o imprimir.
+    """
+    thr_post = cv2.resize(thermal, (image_warped.shape[1], image_warped.shape[0]))
+    gray_warped = cv2.cvtColor(image_warped, cv2.COLOR_BGR2GRAY)
+
+    metrics = {}
+    metrics["NMI_post"] = evaluate_normalized_mutual_information(image_warped, thr_post)
+
+    if usar_histogram_matching:
+        image_warped_yuv = cv2.cvtColor(image_warped, cv2.COLOR_BGR2YUV)
+        Y_warped = image_warped_yuv[:, :, 0]
+        metrics["RMSE_post"] = evaluate_rmse_gray(Y_warped, thr_post)
+        metrics["NRMSE"] = evaluate_nrmse(gray_warped, thr_post)
+    else:
+        metrics["RMSE_post"] = None
+        metrics["NRMSE"] = None
+
+    # --- Métricas de bordes (cross-spectral) ---
+    metrics["NCC_Sobel"] = evaluate_ncc_edges(image_warped, thr_post, method="sobel")
+    metrics["PSNR_Sobel"] = evaluate_psnr_edges(image_warped, thr_post, method="sobel")
+    metrics["SSIM_Sobel"] = evaluate_ssim_edges(image_warped, thr_post, method="sobel")
+
+    metrics["NCC_Canny"] = evaluate_ncc_edges(image_warped, thr_post, method="canny")
+    metrics["PSNR_Canny"] = evaluate_psnr_edges(image_warped, thr_post, method="canny")
+    metrics["SSIM_Canny"] = evaluate_ssim_edges(image_warped, thr_post, method="canny")
+
+    return metrics
+
+# ======================================
+# [FIN METRICAS] 
+# ======================================
 
 def filter_and_analyze_matches(matches, scores, threshold=0.75):
     """
@@ -423,6 +577,7 @@ def filter_and_analyze_matches(matches, scores, threshold=0.75):
 
     return reliable_points, average_score, util_percentage_points
 
+# === [TRANSFORMACIONES] ===
 def apply_afin_transformation(feats0, feats1, matches01, imagen0, imagen1, threshold=50):
     """
     Aplica una transformación afín para registrar imagen0 con respecto a imagen1.
@@ -491,16 +646,11 @@ def apply_homography_transformation(feats0, feats1, matches01, imagen0, imagen1,
     """
     Aplica una transformación de homografía para registrar imagen0 con respecto a imagen1.
 
-    Parámetros:
-    - feats0: Características extraídas de imagen0.
-    - feats1: Características extraídas de imagen1.
-    - matches01: Diccionario con los emparejamientos entre feats0 y feats1.
-    - imagen0: Tensor de PyTorch de la primera imagen (C, H, W).
-    - imagen1: Tensor de PyTorch de la segunda imagen (C, H, W).
-    - threshold: Número mínimo de correspondencias requeridas para proceder.
-
     Retorna:
-    - imagen0_warped: Imagen resultante послé de aplicar a transformación de homografia.
+    - imagen0_warped: Imagen resultante después de aplicar la transformación.
+    - points0: keypoints en imagen0 usados.
+    - scores: puntuaciones de los matches.
+    - metrics_local: diccionario con métricas locales y globales.
     """
 
     matches, scores = matches01["matches"], matches01["scores"]
@@ -510,17 +660,16 @@ def apply_homography_transformation(feats0, feats1, matches01, imagen0, imagen1,
     pts0 = points0.cpu().numpy()
     pts1 = points1.cpu().numpy()
 
+    if len(pts0) < threshold:
+        print(f"La imagen no es lo suficientemente precisa, solo posee {len(pts0)} matches")
+        return None
 
-
-    if(len(pts0) < threshold):
-            print(f"La imagen no es lo suficientemente precisa, solo posee {len(pts0)} matches")
-            return None
-    # Calcular la matriz de homografía
-    M, _ = cv2.findHomography(pts0, pts1, cv2.USAC_MAGSAC, 5.0) # Este 5 se puede subir hasta 10
+    # Calcular la matriz de homografía con RANSAC robusto
+    M, mask = cv2.findHomography(pts0, pts1, cv2.USAC_MAGSAC, 5.0) 
     
     if M is None:
         raise ValueError("No se pudo calcular la homografía.")
-    
+
     # Convertir tensor de PyTorch a imagen PIL para la transformación
     imagen0_pil = to_pil_image(imagen0.cpu())
     imagen1_pil = to_pil_image(imagen1.cpu())
@@ -531,24 +680,23 @@ def apply_homography_transformation(feats0, feats1, matches01, imagen0, imagen1,
         M, 
         (imagen1.shape[2], imagen1.shape[1])
     )
-    error = evaluate_homography(M, pts0, pts1)
-    return imagen0_warped, points0, scores, error
+
+    # Llamamos a la función centralizada de métricas
+    metrics_local = compute_local_metrics(pts0, pts1, matches, mask, M)
+
+    return imagen0_warped, points0, scores, metrics_local
 
 def apply_similarity_transformation(feats0, feats1, matches01, imagen0, imagen1, threshold=50):
     """
     Aplica una transformación de similaridad para registrar imagen0 con respecto a imagen1.
 
-    Parámetros:
-    - feats0: Características extraídas de imagen0.
-    - feats1: Características extraídas de imagen1.
-    - matches01: Diccionario con los emparejamientos entre feats0 y feats1.
-    - imagen0: Tensor de PyTorch de la primera imagen (C, H, W).
-    - imagen1: Tensor de PyTorch de la segunda imagen (C, H, W).
-    - threshold: Número mínimo de correspondencias requeridas para proceder.
-
     Retorna:
-    - imagen0_warped: Imagen resultante después de aplicar la transformación de similaridad.
+    - imagen0_warped: Imagen registrada después de aplicar la transformación.
+    - points0: keypoints en imagen0 usados.
+    - scores: puntuaciones de los matches.
+    - metrics_local: diccionario con métricas locales y globales.
     """
+
     # Extraer los emparejamientos y las puntuaciones
     matches = matches01["matches"]
     scores = matches01["scores"]
@@ -557,7 +705,7 @@ def apply_similarity_transformation(feats0, feats1, matches01, imagen0, imagen1,
     points0 = feats0['keypoints'][matches[..., 0]]
     points1 = feats1['keypoints'][matches[..., 1]]
 
-    # Convertir los puntos clave a NumPy y asegurarse de que sean float32
+    # Convertir los puntos clave a NumPy float32
     pts0 = points0.cpu().numpy().astype(np.float32)
     pts1 = points1.cpu().numpy().astype(np.float32)
 
@@ -567,8 +715,8 @@ def apply_similarity_transformation(feats0, feats1, matches01, imagen0, imagen1,
         return None
 
     # Calcular la matriz de transformación de similaridad
-    # Usamos estimateAffinePartial2D con fullAffine=False para restringir a transformación de similaridad
-    M, inliers = cv2.estimateAffinePartial2D(
+    # estimateAffinePartial2D con fullAffine=False = similaridad
+    M, mask = cv2.estimateAffinePartial2D(
         pts0,
         pts1,
         method=cv2.LMEDS,
@@ -578,11 +726,11 @@ def apply_similarity_transformation(feats0, feats1, matches01, imagen0, imagen1,
     if M is None:
         raise ValueError("No se pudo calcular la transformación de similaridad.")
 
-    # Convertir tensores a arrays de NumPy y transponer para obtener (H, W, C)
+    # Convertir tensores a arrays de NumPy y transponer (C,H,W) → (H,W,C)
     imagen0_np = imagen0.cpu().numpy().transpose(1, 2, 0)
     imagen1_np = imagen1.cpu().numpy().transpose(1, 2, 0)
 
-    # Asegurarse de que las imágenes sean de tipo uint8
+    # Asegurarse de que las imágenes sean uint8
     if imagen0_np.dtype != np.uint8:
         imagen0_np = (imagen0_np * 255).astype(np.uint8)
     if imagen1_np.dtype != np.uint8:
@@ -595,24 +743,22 @@ def apply_similarity_transformation(feats0, feats1, matches01, imagen0, imagen1,
         (imagen1_np.shape[1], imagen1_np.shape[0])
     )
 
-    error = evaluate_homography(M, pts0, pts1)
-    return imagen0_warped, points0, scores, error
+    # Llamamos a la función centralizada de métricas
+    metrics_local = compute_local_metrics(pts0, pts1, matches, mask, M)
+
+    return imagen0_warped, points0, scores, metrics_local
 
 def apply_rigid_transformation(feats0, feats1, matches01, imagen0, imagen1, threshold=50):
     """
-    Aplica una transformación rígida para registrar imagen0 con respecto a imagen1.
-
-    Parámetros:
-    - feats0: Características extraídas de imagen0.
-    - feats1: Características extraídas de imagen1.
-    - matches01: Diccionario con los emparejamientos entre feats0 y feats1.
-    - imagen0: Tensor de PyTorch de la primera imagen (C, H, W).
-    - imagen1: Tensor de PyTorch de la segunda imagen (C, H, W).
-    - threshold: Número mínimo de correspondencias requeridas para proceder.
+    Aplica una transformación rígida (rotación + traslación) para registrar imagen0 con respecto a imagen1.
 
     Retorna:
-    - imagen0_warped: Imagen resultante después de aplicar la transformación rígida.
+    - imagen0_warped: Imagen registrada después de aplicar la transformación.
+    - points0: keypoints en imagen0 usados.
+    - scores: puntuaciones de los matches.
+    - metrics_local: diccionario con métricas locales y globales.
     """
+
     # Extraer los emparejamientos y las puntuaciones
     matches = matches01["matches"]
     scores = matches01["scores"]
@@ -621,7 +767,7 @@ def apply_rigid_transformation(feats0, feats1, matches01, imagen0, imagen1, thre
     points0 = feats0['keypoints'][matches[..., 0]]
     points1 = feats1['keypoints'][matches[..., 1]]
 
-    # Convertir los puntos clave a NumPy y asegurarse de que sean float32
+    # Convertir los puntos clave a NumPy float32
     pts0 = points0.cpu().numpy().astype(np.float32)
     pts1 = points1.cpu().numpy().astype(np.float32)
 
@@ -630,40 +776,31 @@ def apply_rigid_transformation(feats0, feats1, matches01, imagen0, imagen1, thre
         print(f"La imagen no es lo suficientemente precisa, solo posee {len(pts0)} matches")
         return None
 
-    # Estimar la transformación rígida (rotación y traslación)
-    # Calcular los centroides de los conjuntos de puntos
+    # Estimar la transformación rígida (rotación + traslación)
     centroid0 = np.mean(pts0, axis=0)
     centroid1 = np.mean(pts1, axis=0)
-
-    # Restar los centroides para obtener coordenadas centradas
     pts0_centered = pts0 - centroid0
     pts1_centered = pts1 - centroid1
 
-    # Calcular la matriz de covarianza
     H = np.dot(pts0_centered.T, pts1_centered)
-
-    # Calcular la SVD de la matriz de covarianza
     U, S, Vt = np.linalg.svd(H)
-
-    # Calcular la matriz de rotación
     R = np.dot(Vt.T, U.T)
 
-    # Asegurarse de que la matriz de rotación es válida (determinante = 1)
+    # Asegurarse de que la matriz de rotación es válida
     if np.linalg.det(R) < 0:
         Vt[-1, :] *= -1
         R = np.dot(Vt.T, U.T)
 
-    # Calcular la traslación
+    # Calcular traslación
     t = centroid1.T - np.dot(R, centroid0.T)
 
     # Construir la matriz de transformación 2x3 para cv2.warpAffine
     M = np.hstack((R, t.reshape(2, 1)))
 
-    # Convertir tensores a arrays de NumPy y transponer para obtener (H, W, C)
+    # Convertir tensores a imágenes NumPy
     imagen0_np = imagen0.cpu().numpy().transpose(1, 2, 0)
     imagen1_np = imagen1.cpu().numpy().transpose(1, 2, 0)
 
-    # Asegurarse de que las imágenes sean de tipo uint8
     if imagen0_np.dtype != np.uint8:
         imagen0_np = (imagen0_np * 255).astype(np.uint8)
     if imagen1_np.dtype != np.uint8:
@@ -676,29 +813,46 @@ def apply_rigid_transformation(feats0, feats1, matches01, imagen0, imagen1, thre
         (imagen1_np.shape[1], imagen1_np.shape[0])
     )
 
-    error = evaluate_homography(M, pts0, pts1)
-    return imagen0_warped, points0, scores, error
+    # --- Métricas locales y globales ---
+    # ⚠️ cv2.estimateAffinePartial2D devuelve máscara, aquí no usamos RANSAC → no hay mask
+    mask = None  
+    metrics_local = compute_local_metrics(pts0, pts1, matches, mask, M)
 
-def apply_rigid_transformation_ransac(feats0, feats1, matches01, imagen0, imagen1, threshold=50, ransac_iterations=1000, ransac_threshold=5.0):
-    # Extraer los emparejamientos y las puntuaciones
+    return imagen0_warped, points0, scores, metrics_local
+
+def apply_rigid_transformation_ransac(
+    feats0, feats1, matches01, imagen0, imagen1,
+    threshold=50, ransac_iterations=1000, ransac_threshold=5.0
+):
+    """
+    Aplica una transformación rígida (rotación + traslación) con RANSAC
+    para registrar imagen0 con respecto a imagen1.
+
+    Retorna:
+    - imagen0_warped: Imagen registrada después de aplicar la transformación.
+    - points0: keypoints en imagen0 usados.
+    - scores: puntuaciones de los matches.
+    - metrics_local: diccionario con métricas locales y globales.
+    """
+
+    # --- Extracción de emparejamientos y puntos ---
     matches = matches01["matches"]
     scores = matches01["scores"]
-
-    # Obtener los puntos clave correspondientes
     points0 = feats0['keypoints'][matches[..., 0]]
     points1 = feats1['keypoints'][matches[..., 1]]
 
-    # Convertir los puntos clave a NumPy y asegurarse de que sean float32
     pts0 = points0.cpu().numpy().astype(np.float32)
     pts1 = points1.cpu().numpy().astype(np.float32)
 
-    # Verificar si hay suficientes correspondencias
+    # --- Verificación de número mínimo de matches ---
     if len(pts0) < threshold:
         print(f"La imagen no es lo suficientemente precisa, solo posee {len(pts0)} matches")
         return None
 
+    # --- RANSAC manual para estimar transformación rígida ---
     max_inliers = 0
     best_M = None
+    best_inliers = None
 
     for _ in range(ransac_iterations):
         # Seleccionar aleatoriamente 2 pares de puntos
@@ -712,44 +866,47 @@ def apply_rigid_transformation_ransac(feats0, feats1, matches01, imagen0, imagen
         # Aplicar la transformación a todos los puntos
         pts0_transformed = (np.dot(M_candidate[:, :2], pts0.T) + M_candidate[:, 2:3]).T
 
-        # Calcular el error
+        # Calcular error de reproyección
         errors = np.linalg.norm(pts0_transformed - pts1, axis=1)
 
-        # Contar el número de inliers
+        # Determinar inliers
         inliers = errors < ransac_threshold
         num_inliers = np.sum(inliers)
 
-        # Actualizar la mejor estimación
+        # Actualizar si mejora el modelo
         if num_inliers > max_inliers:
             max_inliers = num_inliers
             best_M = M_candidate
             best_inliers = inliers
 
     if best_M is None:
-        raise ValueError("No se pudo calcular la transformación rígida.")
+        raise ValueError("No se pudo calcular la transformación rígida con RANSAC.")
 
-    # Recalcular la transformación usando todos los inliers
+    # Recalcular la transformación usando solo los inliers
     M = estimate_rigid_transform(pts0[best_inliers], pts1[best_inliers])
 
-    # Convertir tensores a arrays de NumPy y transponer para obtener (H, W, C)
+    # --- Crear máscara binaria tipo OpenCV ---
+    mask = best_inliers.astype(np.uint8).reshape(-1, 1)
+
+    # --- Aplicar la transformación a la imagen ---
     imagen0_np = imagen0.cpu().numpy().transpose(1, 2, 0)
     imagen1_np = imagen1.cpu().numpy().transpose(1, 2, 0)
 
-    # Asegurarse de que las imágenes sean de tipo uint8
     if imagen0_np.dtype != np.uint8:
         imagen0_np = (imagen0_np * 255).astype(np.uint8)
     if imagen1_np.dtype != np.uint8:
         imagen1_np = (imagen1_np * 255).astype(np.uint8)
 
-    # Aplicar la transformación rígida
     imagen0_warped = cv2.warpAffine(
         imagen0_np,
         M,
         (imagen1_np.shape[1], imagen1_np.shape[0])
     )
 
-    error = evaluate_homography(M, pts0, pts1)
-    return imagen0_warped, points0, scores, error
+    # --- Calcular métricas locales y globales ---
+    metrics_local = compute_local_metrics(pts0, pts1, matches, mask, M)
+
+    return imagen0_warped, points0, scores, metrics_local
 
 def estimate_rigid_transform(pts0, pts1):
     # Implementación similar a la anterior
@@ -771,18 +928,14 @@ def apply_translation_transformation(feats0, feats1, matches01, imagen0, imagen1
     """
     Aplica una transformación de traslación para registrar imagen0 con respecto a imagen1.
 
-    Parámetros:
-    - feats0: Características extraídas de imagen0.
-    - feats1: Características extraídas de imagen1.
-    - matches01: Diccionario con los emparejamientos entre feats0 y feats1.
-    - imagen0: Tensor de PyTorch de la primera imagen (C, H, W).
-    - imagen1: Tensor de PyTorch de la segunda imagen (C, H, W).
-    - threshold: Número mínimo de correspondencias requeridas para proceder.
-
     Retorna:
-    - imagen0_warped: Imagen resultante después de aplicar la transformación de traslación.
+    - imagen0_warped: Imagen registrada después de aplicar la transformación.
+    - points0: keypoints en imagen0 usados.
+    - scores: puntuaciones de los matches.
+    - metrics_local: diccionario con métricas locales y globales.
     """
-    # Extraer los emparejamientos
+
+    # --- Extracción de emparejamientos ---
     matches = matches01["matches"]
     scores = matches01["scores"]
 
@@ -790,61 +943,63 @@ def apply_translation_transformation(feats0, feats1, matches01, imagen0, imagen1
     points0 = feats0['keypoints'][matches[..., 0]]
     points1 = feats1['keypoints'][matches[..., 1]]
 
-    # Convertir los puntos clave a NumPy y asegurarse de que sean float32
+    # Convertir a NumPy float32
     pts0 = points0.cpu().numpy().astype(np.float32)
     pts1 = points1.cpu().numpy().astype(np.float32)
 
-    # Verificar si hay suficientes correspondencias
+    # --- Verificación de cantidad mínima de matches ---
     if len(pts0) < threshold:
         print(f"La imagen no es lo suficientemente precisa, solo posee {len(pts0)} matches")
         return None
 
-    # Calcular el vector de traslación como la media de las diferencias entre los puntos emparejados
+    # --- Calcular vector de traslación (usando mediana para robustez) ---
     translations = pts1 - pts0
     t_x = np.median(translations[:, 0])
     t_y = np.median(translations[:, 1])
 
-    # Construir la matriz de transformación 2x3 para cv2.warpAffine
+    # --- Construir matriz de transformación 2x3 ---
     M = np.array([[1, 0, t_x],
                   [0, 1, t_y]], dtype=np.float32)
 
-    # Convertir tensores a arrays de NumPy y transponer para obtener (H, W, C)
+    # --- Convertir tensores a NumPy (C,H,W) → (H,W,C) ---
     imagen0_np = imagen0.cpu().numpy().transpose(1, 2, 0)
     imagen1_np = imagen1.cpu().numpy().transpose(1, 2, 0)
 
-    # Asegurarse de que las imágenes sean de tipo uint8
+    # Asegurar tipo uint8
     if imagen0_np.dtype != np.uint8:
         imagen0_np = (imagen0_np * 255).astype(np.uint8)
     if imagen1_np.dtype != np.uint8:
         imagen1_np = (imagen1_np * 255).astype(np.uint8)
 
-    # Aplicar la transformación de traslación
+    # --- Aplicar la traslación ---
     imagen0_warped = cv2.warpAffine(
         imagen0_np,
         M,
         (imagen1_np.shape[1], imagen1_np.shape[0])
     )
 
-    error = evaluate_homography(M, pts0, pts1)
-    return imagen0_warped, points0, scores, error
+    # --- Calcular métricas locales y globales ---
+    # ⚠️ En traslación pura no hay RANSAC, por lo tanto no hay máscara de inliers
+    mask = None  
+    metrics_local = compute_local_metrics(pts0, pts1, matches, mask, M)
 
-def apply_translation_transformation_ransac(feats0, feats1, matches01, imagen0, imagen1, threshold=1, ransacReprojThreshold=5.0):
+    return imagen0_warped, points0, scores, metrics_local
+
+def apply_translation_transformation_ransac(
+    feats0, feats1, matches01, imagen0, imagen1,
+    threshold=1, ransacReprojThreshold=5.0
+):
     """
     Aplica una transformación de traslación para registrar imagen0 con respecto a imagen1 utilizando RANSAC.
 
-    Parámetros:
-    - feats0: Características extraídas de imagen0.
-    - feats1: Características extraídas de imagen1.
-    - matches01: Diccionario con los emparejamientos entre feats0 y feats1.
-    - imagen0: Tensor de PyTorch de la primera imagen (C, H, W).
-    - imagen1: Tensor de PyTorch de la segunda imagen (C, H, W).
-    - threshold: Número mínimo de correspondencias requeridas para proceder.
-    - ransacReprojThreshold: Umbral de reproyección para RANSAC.
-
     Retorna:
-    - imagen0_warped: Imagen resultante después de aplicar la transformación de traslación.
+    - imagen0_warped: Imagen registrada después de aplicar la transformación.
+    - points0: keypoints en imagen0 usados.
+    - scores: puntuaciones de los matches.
+    - metrics_local: diccionario con métricas locales y globales.
     """
-    # Extraer los emparejamientos
+
+    # --- Extracción de emparejamientos ---
     matches = matches01["matches"]
     scores = matches01["scores"]
 
@@ -852,56 +1007,57 @@ def apply_translation_transformation_ransac(feats0, feats1, matches01, imagen0, 
     points0 = feats0['keypoints'][matches[..., 0]]
     points1 = feats1['keypoints'][matches[..., 1]]
 
-    # Convertir los puntos clave a NumPy y asegurarse de que sean float32
+    # Convertir a NumPy float32
     pts0 = points0.cpu().numpy().astype(np.float32)
     pts1 = points1.cpu().numpy().astype(np.float32)
 
-    # Verificar si hay suficientes correspondencias
+    # --- Verificación mínima de correspondencias ---
     if len(pts0) < threshold:
         print(f"La imagen no es lo suficientemente precisa, solo posee {len(pts0)} matches")
         return None
 
-    # Añadir una dimensión extra para cv2.estimateAffine2D
+    # --- Ajuste robusto con RANSAC ---
     pts0_reshaped = pts0.reshape(-1, 1, 2)
     pts1_reshaped = pts1.reshape(-1, 1, 2)
 
-    # Utilizar cv2.estimateAffine2D con RANSAC para estimar la traslación
     M, inliers = cv2.estimateAffine2D(
         pts0_reshaped,
         pts1_reshaped,
         method=cv2.USAC_MAGSAC,
         ransacReprojThreshold=ransacReprojThreshold,
-        refineIters=10  # Puedes ajustar el número de iteraciones de refinamiento
+        refineIters=10
     )
 
     if M is None:
         raise ValueError("No se pudo calcular la transformación de traslación.")
 
-    # Extraer solo la traslación de la matriz M
-    t_x = M[0, 2]
-    t_y = M[1, 2]
+    # --- Extraer solo el componente de traslación ---
+    t_x, t_y = M[0, 2], M[1, 2]
     M_translation = np.array([[1, 0, t_x],
                               [0, 1, t_y]], dtype=np.float32)
 
-    # Convertir tensores a arrays de NumPy y transponer para obtener (H, W, C)
+    # --- Convertir tensores a imágenes NumPy ---
     imagen0_np = imagen0.cpu().numpy().transpose(1, 2, 0)
     imagen1_np = imagen1.cpu().numpy().transpose(1, 2, 0)
 
-    # Asegurarse de que las imágenes sean de tipo uint8
+    # Asegurar formato uint8
     if imagen0_np.dtype != np.uint8:
         imagen0_np = (imagen0_np * 255).astype(np.uint8)
     if imagen1_np.dtype != np.uint8:
         imagen1_np = (imagen1_np * 255).astype(np.uint8)
 
-    # Aplicar la transformación de traslación
+    # --- Aplicar transformación ---
     imagen0_warped = cv2.warpAffine(
         imagen0_np,
         M_translation,
         (imagen1_np.shape[1], imagen1_np.shape[0])
     )
 
-    error = evaluate_homography(M, pts0, pts1)
-    return imagen0_warped, points0, scores, error
+    # --- Calcular métricas locales y globales ---
+    mask = inliers.astype(np.uint8) if inliers is not None else None
+    metrics_local = compute_local_metrics(pts0, pts1, matches, mask, M_translation)
+
+    return imagen0_warped, points0, scores, metrics_local
 
 def apply_translation_torch(imagen, t_x, t_y):
     """
@@ -983,49 +1139,53 @@ def apply_translation_transformation2(feats0, feats1, matches01, imagen0, imagen
     """
     Aplica una transformación de traslación para registrar imagen0 con respecto a imagen1 usando PyTorch.
 
-    Parámetros:
-    - feats0: Características extraídas de imagen0.
-    - feats1: Características extraídas de imagen1.
-    - matches01: Diccionario con los emparejamientos entre feats0 y feats1.
-    - imagen0: Tensor de PyTorch de la primera imagen (C, H, W).
-    - imagen1: Tensor de PyTorch de la segunda imagen (C, H, W).
-    - threshold: Número mínimo de correspondencias requeridas para proceder.
-    - umbral_puntuacion: Puntuación mínima para considerar emparejamientos válidos.
-
     Retorna:
-    - imagen0_warped: Imagen resultante después de aplicar la transformación de traslación.
+    - imagen0_warped: Imagen registrada después de aplicar la transformación.
+    - points0: keypoints en imagen0 usados.
+    - scores: puntuaciones de los matches.
+    - metrics_local: diccionario con métricas locales y globales.
     """
-    # Extraer los emparejamientos
+
+    # --- Extraer emparejamientos y puntuaciones ---
     matches = matches01["matches"]
     scores = matches01["scores"]
 
-    # Obtener los puntos clave correspondientes
+    # --- Obtener los puntos clave correspondientes ---
     points0 = feats0['keypoints'][matches[..., 0]]
     points1 = feats1['keypoints'][matches[..., 1]]
 
-    # Filtrar emparejamientos por puntuación
+    # --- Filtrar por puntuación ---
     valid_matches = scores > umbral_puntuacion
     points0 = points0[valid_matches]
     points1 = points1[valid_matches]
+    matches = matches[valid_matches]
+    scores = scores[valid_matches]
 
+    # --- Verificación de número mínimo de matches válidos ---
     if len(points0) < threshold:
         print(f"La imagen no es lo suficientemente precisa, solo posee {len(points0)} matches válidos.")
         return None
-    
-    # Convertir a NumPy
+
+    # --- Convertir a NumPy ---
     pts0 = points0.cpu().numpy().astype(np.float32)
     pts1 = points1.cpu().numpy().astype(np.float32)
 
-    # Calcular el vector de traslación
+    # --- Calcular vector de traslación robusto (mediana) ---
     translations = pts1 - pts0
     t_x = np.median(translations[:, 0])
     t_y = np.median(translations[:, 1])
-    
-    # Aplicar la traslación con PyTorch
-    imagen0_warped, M = apply_translation_torch(imagen0, t_x, t_y)
-    error = evaluate_homography(M, pts0, pts1)
-    return imagen0_warped, points0, scores, error
 
+    # --- Aplicar traslación con PyTorch ---
+    imagen0_warped, M = apply_translation_torch(imagen0, t_x, t_y)
+
+    # --- Métricas locales y globales ---
+    mask = None  # ⚠️ No hay RANSAC, así que no existe máscara de inliers
+    metrics_local = compute_local_metrics(pts0, pts1, matches, mask, M)
+
+    return imagen0_warped, points0, scores, metrics_local
+
+
+# === [FIN TRANSFORMACIONES] ===
 def save_metrics_to_excel(xlsx_path, data, fieldnames, decimals=6):
     # Redondear y formatear los valores
     formatted_data = {}

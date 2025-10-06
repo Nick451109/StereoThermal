@@ -1,6 +1,4 @@
 import os
-import matplotlib.pyplot as plt
-import torch
 import cv2
 import tifffile as tf
 import numpy as np
@@ -14,12 +12,10 @@ from Image_registration.util import (
     evaluate_ssim_edges,
     evaluate_homography,
     save_metrics_to_excel,
+    compute_all_metrics,
 )
 from util import *
 from Image_registration import registration
-from Fusion.fusion import *
-from Disparity.disparity import compute_disparity
-
 
 def main(
     imageLeft,
@@ -49,6 +45,7 @@ def main(
     print(f"[METRIC] ({transformation_method}) NMI pre:  {nmi_pre:.4f}")
 
     # === [METRICA] RMSE PRE ===
+    rmse_pre = None
     if usar_histogram_matching:
         try:
             vis_pre_yuv = cv2.cvtColor(vis_pre, cv2.COLOR_BGR2YUV)
@@ -58,9 +55,8 @@ def main(
         except Exception as e:
             print(f"[WARN] No se pudo calcular RMSE pre: {e}")
 
-
     # === [REGISTRO] TERMICA ALINEADA A VISIBLE ===
-    image_warped, matches, scores, error = registration.procesar_imagenes(
+    image_warped, matches, scores, metrics_local = registration.procesar_imagenes(
         ruta_imagen0=imageRight,
         ruta_imagen1=imageThermal,
         extractor_tipo=extractor,
@@ -75,40 +71,22 @@ def main(
     if image_warped is None:
         print(f"[ERROR] Falló el registro con {transformation_method}.")
         return
-    
+
     # === [METRICA] ERROR DE REPROYECCION ===
     try:
-        if error is not None and isinstance(error, (float, int)):
-            print(f"[METRIC] ({transformation_method}) Error reproyección: {error:.4f}")
+        if "Error_reprojection" in metrics_local and metrics_local["Error_reprojection"] not in ["N/A", None]:
+            print(f"[METRIC] ({transformation_method}) Error reproyección: {metrics_local['Error_reprojection']}")
     except Exception as e:
         print(f"[WARN] No se pudo calcular error de reproyección: {e}")
 
-    # === [METRICA] NMI POST (visible warpeda vs térmica alineada por tamaño) ===
-    thr_post = cv2.resize(thr_pre, (image_warped.shape[1], image_warped.shape[0]))
-    nmi_post = evaluate_normalized_mutual_information(image_warped, thr_post)
-    print(f"[METRIC] ({transformation_method}) NMI post: {nmi_post:.4f}")
-
-    # === [METRICA] RMSE post sobre canal Y igualado vs térmica ===
-    # Convertir image_warped (BGR) a YUV y extraer canal Y
-    if usar_histogram_matching:
-        image_warped_yuv = cv2.cvtColor(image_warped, cv2.COLOR_BGR2YUV)
-        Y_warped = image_warped_yuv[:, :, 0]
-        rmse_post = evaluate_rmse_gray(Y_warped, thr_post)
-        print(f"[METRIC] ({transformation_method}) RMSE post: {rmse_post:.4f}")
-        image_warped_gray = cv2.cvtColor(image_warped, cv2.COLOR_BGR2GRAY)
-        print(f"[METRIC] ({transformation_method}) NRMSE: {evaluate_nrmse(image_warped_gray, thr_post):.4f}")
-
-
-    # === [METRICA] ===
-    print(f"[EXP.METRIC] ({transformation_method}) NCC Sobel: {evaluate_ncc_edges(image_warped, thr_post, method='sobel'):.4f}")
-    print(f"[EXP.METRIC] ({transformation_method}) PSNR Sobel: {evaluate_psnr_edges(image_warped, thr_post, method='sobel'):.4f}")
-    print(f"[EXP.METRIC] ({transformation_method}) SSIM Sobel: {evaluate_ssim_edges(image_warped, thr_post, method='sobel'):.4f}")
-
-    print(f"[EXP.METRIC] ({transformation_method}) NCC Canny: {evaluate_ncc_edges(image_warped, thr_post, method='canny'):.4f}")
-    print(f"[EXP.METRIC] ({transformation_method}) PSNR Canny: {evaluate_psnr_edges(image_warped, thr_post, method='canny'):.4f}")
-    print(f"[EXP.METRIC] ({transformation_method}) SSIM Canny: {evaluate_ssim_edges(image_warped, thr_post, method='canny'):.4f}")
+    # === [MÉTRICAS POST UNIFICADAS (usa compute_all_metrics)] ===
+    metrics_post = compute_all_metrics(image_warped, thr_pre, usar_histogram_matching)
+    for k, v in metrics_post.items():
+        if v is not None:
+            print(f"[METRIC] ({transformation_method}) {k}: {v:.4f}")
 
     # === [CONCATENAR] RGB + térmica → [H, W, 4] ===
+    thr_post = cv2.resize(thr_pre, (image_warped.shape[1], image_warped.shape[0]))
     thermal_channel = np.expand_dims(thr_post, axis=-1)
     rgbt_image = np.concatenate([image_warped, thermal_channel], axis=-1)
     print(f"[INFO] Imagen RGBT: {rgbt_image.shape}")
@@ -130,40 +108,31 @@ def main(
     xlsx_path = os.path.join(base_dir, "metrics_results.xlsx")
     fieldnames = [
         "output_name", "extractor", "transformation",
-        "Matches",
-        "NMI_pre", "RMSE_pre", "Error_reprojection", "NMI_post", "RMSE_post", "NRMSE",
+        "Matches", "Inliers", "Outliers", "Inlier_ratio",
+        "Outlier_ratio", "Matching_score", "RANSAC",
+        "NMI_pre", "RMSE_pre", "Error_reprojection",
+        "NMI_post", "RMSE_post", "NRMSE",
         "NCC_Sobel", "PSNR_Sobel", "SSIM_Sobel",
         "NCC_Canny", "PSNR_Canny", "SSIM_Canny"
     ]
 
+    # fusionar globales + locales
     data = {
         "output_name": output_name,
         "extractor": extractor,
         "transformation": transformation_method,
-        "Matches": len(matches) if matches is not None else 0,
         "NMI_pre": nmi_pre,
         "RMSE_pre": rmse_pre if usar_histogram_matching else None,
-        "Error_reprojection": error,
-        "NMI_post": nmi_post,
-        "RMSE_post": rmse_post if usar_histogram_matching else None,
-        "NRMSE": evaluate_nrmse(image_warped_gray, thr_post) if usar_histogram_matching else None,
-        "NCC_Sobel": evaluate_ncc_edges(image_warped, thr_post, method='sobel'),
-        "PSNR_Sobel": evaluate_psnr_edges(image_warped, thr_post, method='sobel'),
-        "SSIM_Sobel": evaluate_ssim_edges(image_warped, thr_post, method='sobel'),
-        "NCC_Canny": evaluate_ncc_edges(image_warped, thr_post, method='canny'),
-        "PSNR_Canny": evaluate_psnr_edges(image_warped, thr_post, method='canny'),
-        "SSIM_Canny": evaluate_ssim_edges(image_warped, thr_post, method='canny'),
     }
-
+    data.update(metrics_local)  # ← añade métricas locales
+    data.update(metrics_post)   # ← añade métricas globales
 
     save_metrics_to_excel(xlsx_path, data, fieldnames)
     print(f"[INFO] Métricas guardadas en {xlsx_path}")
+
     print("----------------------------------------------------------------")
-    
-    return image_warped, matches, scores, error, data
 
-
-
+    return image_warped, matches, scores, metrics_local, data
 
 if __name__ == "__main__":
 

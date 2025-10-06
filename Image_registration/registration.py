@@ -361,36 +361,37 @@ def procesar_imagenes(
                 print(f"[WARN] No se pudo generar visualización de keypoints: {e}")
 
         if transformation_method == "homography":
-            imagen0_warped, points0, scores, error = apply_homography_transformation(
+            imagen0_warped, points0, scores, metrics_local = apply_homography_transformation(
                 feats0, feats1, matches01, imagen0, imagen1, threshold=threshold
             )
+
         elif transformation_method == "affine":
-            imagen0_warped, points0, scores, error = apply_afin_transformation(
+            imagen0_warped, points0, scores, metrics_local = apply_afin_transformation(
                 feats0, feats1, matches01, imagen0, imagen1, threshold=threshold
             )
         elif transformation_method == "rigid":
-            imagen0_warped, points0, scores, error = apply_rigid_transformation(
+            imagen0_warped, points0, scores, metrics_local = apply_rigid_transformation(
                 feats0, feats1, matches01, imagen0, imagen1, threshold=threshold
             )
         elif transformation_method == "similarity":
-            imagen0_warped, points0, scores, error = apply_similarity_transformation(
+            imagen0_warped, points0, scores, metrics_local = apply_similarity_transformation(
                 feats0, feats1, matches01, imagen0, imagen1, threshold=threshold
             )
         elif transformation_method == "translation":
-            imagen0_warped, points0, scores, error = apply_translation_transformation(
+            imagen0_warped, points0, scores, metrics_local = apply_translation_transformation(
                 feats0, feats1, matches01, imagen0, imagen1, threshold=threshold
             )
         elif transformation_method == "translation2":
-            imagen0_warped, points0, scores, error = apply_translation_transformation2(
+            imagen0_warped, points0, scores, metrics_local = apply_translation_transformation2(
                 feats0, feats1, matches01, imagen0, imagen1, threshold=threshold
             )
             imagen0_warped = np.array(to_pil_image(imagen0_warped.cpu()))
         elif transformation_method == "rigid_ransac":
-            imagen0_warped, points0, scores, error = apply_rigid_transformation_ransac(
+            imagen0_warped, points0, scores, metrics_local = apply_rigid_transformation_ransac(
                 feats0, feats1, matches01, imagen0, imagen1, threshold=threshold
             )
         elif transformation_method == "translation_ransac":
-            imagen0_warped, points0, scores, error = (
+            imagen0_warped, points0, scores, metrics_local = (
                 apply_translation_transformation_ransac(
                     feats0, feats1, matches01, imagen0, imagen1, threshold=threshold
                 )
@@ -410,7 +411,7 @@ def procesar_imagenes(
         print(
             f"[INFO] shape: {imagen0_warped.shape} - Matches: {len(points0)} - Score: {len(scores)}"
         )
-        return imagen0_warped, points0, scores, error
+        return imagen0_warped, points0, scores, metrics_local
 
     except Exception as e:
         print(f"Error al procesar las imágenes: {e}")
