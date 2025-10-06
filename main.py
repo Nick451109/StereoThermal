@@ -74,10 +74,17 @@ def main(
 
     # === [METRICA] ERROR DE REPROYECCION ===
     try:
-        if "Error_reprojection" in metrics_local and metrics_local["Error_reprojection"] not in ["N/A", None]:
-            print(f"[METRIC] ({transformation_method}) Error reproyección: {metrics_local['Error_reprojection']}")
+        if isinstance(metrics_local, dict):
+            error_reproj = metrics_local.get("Error_reprojection", None)
+            if error_reproj not in ["N/A", None]:
+                print(f"[METRIC] ({transformation_method}) Error reproyección: {float(error_reproj):.4f}")
+        elif isinstance(metrics_local, (float, int, np.floating)):
+            print(f"[METRIC] ({transformation_method}) Error reproyección: {float(metrics_local):.4f}")
+        else:
+            print(f"[WARN] ({transformation_method}) metrics_local no tiene formato válido: {type(metrics_local)}")
     except Exception as e:
         print(f"[WARN] No se pudo calcular error de reproyección: {e}")
+
 
     # === [MÉTRICAS POST UNIFICADAS (usa compute_all_metrics)] ===
     metrics_post = compute_all_metrics(image_warped, thr_pre, usar_histogram_matching)
@@ -116,7 +123,7 @@ def main(
         "NCC_Canny", "PSNR_Canny", "SSIM_Canny"
     ]
 
-    # fusionar globales + locales
+        # fusionar globales + locales
     data = {
         "output_name": output_name,
         "extractor": extractor,
@@ -124,8 +131,14 @@ def main(
         "NMI_pre": nmi_pre,
         "RMSE_pre": rmse_pre if usar_histogram_matching else None,
     }
+
+    # Asegurar que metrics_local sea dict
+    if not isinstance(metrics_local, dict):
+        metrics_local = {"Error_reprojection": float(metrics_local)}
+
     data.update(metrics_local)  # ← añade métricas locales
     data.update(metrics_post)   # ← añade métricas globales
+
 
     save_metrics_to_excel(xlsx_path, data, fieldnames)
     print(f"[INFO] Métricas guardadas en {xlsx_path}")
@@ -137,22 +150,22 @@ def main(
 if __name__ == "__main__":
 
     # Ruta base de la imagen térmica (constante)
-    image_thermal_path = "./Datasets/parallax_Tardal/thermal_out/00150.png"
+    image_thermal_path = "./Datasets/test_cambios/thermal_out_left/00342.png"
 
     # Cambiar esto a True solo cuando quieras aplicar histogram matching
     APLICAR_HISTOGRAM_MATCHING = True
 
     if APLICAR_HISTOGRAM_MATCHING:
         matched_path = histogram_match_visible_to_thermal(
-            visible_rgb_path="./Datasets/parallax_Tardal/rgb_out/00150.png",
+            visible_rgb_path="./Datasets/test_cambios/rgb_out_left/00342.png",
             thermal_gray_path=image_thermal_path,
             mostrar=True,
         )
         image_left_path = matched_path
         image_right_path = matched_path
     else:
-        image_left_path = "./Datasets/parallax_Tardal/rgb_out/00150.png"
-        image_right_path = "./Datasets/parallax_Tardal/rgb_out/00150.png"
+        image_left_path = "./Datasets/test_cambios/rgb_out_left/00342.png"
+        image_right_path = "./Datasets/test_cambios/rgb_out_left/00342.png"
 
 
 

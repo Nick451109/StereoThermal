@@ -639,8 +639,10 @@ def apply_afin_transformation(feats0, feats1, matches01, imagen0, imagen1, thres
         (imagen1_np.shape[1], imagen1_np.shape[0])
     )
 
-    error = evaluate_homography(M, pts0, pts1)
-    return imagen0_warped, points0, scores, error
+    mask = inliers.astype(np.uint8) if inliers is not None else None
+    metrics_local = compute_local_metrics(pts0, pts1, matches, mask, M)
+    return imagen0_warped, points0, scores, metrics_local
+
 
 def apply_homography_transformation(feats0, feats1, matches01, imagen0, imagen1, threshold=50):
     """
