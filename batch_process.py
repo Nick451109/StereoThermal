@@ -77,11 +77,9 @@ def run_batch(
                 image_right_path = rgb_path
 
             for transformation_name in transformations:
-                # Subcarpeta para cada transformación
                 trans_dir = os.path.join(extractor_dir, transformation_name)
                 os.makedirs(trans_dir, exist_ok=True)
 
-                # === Ejecutar main.py ===
                 result = main(
                     imageLeft=image_left_path,
                     imageRight=image_right_path,
@@ -91,50 +89,19 @@ def run_batch(
                     transformation_method=transformation_name,
                     threshold=threshold,
                     usar_histogram_matching=aplicar_histogram_matching,
-                    base_dir=extractor_dir
+                    base_dir=trans_dir  # ✅ más ordenado
                 )
 
-                # Saltar si main devolvió None
                 if result is None:
                     print(f"[WARN] Se omitió {base_filename} con {transformation_name} ({extractor}) por falta de matches.")
                     continue
 
-                image_warped, matches, scores, error, data = result
+                image_warped, matches, scores, metrics_local, data = result
+                error = metrics_local.get("Error_reprojection", None)
 
+                # Guardar en Excel global
+                save_metrics_to_excel(global_xlsx, data, list(data.keys()))
 
-
-                # === Guardar métricas en Excel global y por extractor ===
-                fieldnames = [
-                    "output_name", "extractor", "transformation",
-                    "Matches",
-                    "NMI_pre", "RMSE_pre", "Error_reprojection", "NMI_post", "RMSE_post", "NRMSE",
-                    "NCC_Sobel", "PSNR_Sobel", "SSIM_Sobel",
-                    "NCC_Canny", "PSNR_Canny", "SSIM_Canny"
-                ]
-
-                # Armamos el diccionario de datos igual que en main
-                data = {
-                    "output_name": base_filename,
-                    "extractor": extractor,
-                    "transformation": transformation_name,
-                    "Matches": len(matches) if matches is not None else 0,
-                    "NMI_pre": None,  # si quieres, puedes recalcular aquí
-                    "RMSE_pre": None,
-                    "Error_reprojection": error,
-                    "NMI_post": None,
-                    "RMSE_post": None,
-                    "NRMSE": None,
-                    "NCC_Sobel": None,
-                    "PSNR_Sobel": None,
-                    "SSIM_Sobel": None,
-                    "NCC_Canny": None,
-                    "PSNR_Canny": None,
-                    "SSIM_Canny": None,
-                }
-
-                # Guardar tanto en global como en por-extractor
-                save_metrics_to_excel(global_xlsx, data, fieldnames)
-                save_metrics_to_excel(extractor_xlsx, data, fieldnames)
 
     print(f"\n[INFO] Resultados guardados en {results_root}")
 
