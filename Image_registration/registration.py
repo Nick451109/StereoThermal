@@ -46,7 +46,7 @@ def _read_as_bgr(path):
         img = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
     return img
 
-# === [KEYPOINTS] Helpers para unir puntos a partir de matches ===
+# === [KEYPOINTS] Helpers para unir puntos a partir de matches (visualización de matches)===
 def _pts_from_matches(feats0, feats1, matches01):
     kpts0 = feats0["keypoints"].detach().cpu().numpy()
     kpts1 = feats1["keypoints"].detach().cpu().numpy()
@@ -326,22 +326,38 @@ def procesar_imagenes(
         # m_kpts0, m_kpts1 = kpts0[matches[..., 0]], kpts1[matches[..., 1]]
         
         # === [VISUALIZADOR] Visualizar matches si está activado ===
+        # UMBRALES RECOMENDADOS (condiciones normales):
+        # Homography ............. 5.0 px
+        # Affine .................. 3.0 px
+        # Similarity / Rigid ...... 3.0 px
+        # Translation ............. 2.0 px
+        # Rigid_RANSAC ............ 3.0 px
+        # Translation_RANSAC ...... 2.0 px
+
+        # UMBRALES RECOMENDADOS (condiciones adversas haze/iluminación):
+        # Homography ............. 6.0 px
+        # Affine .................. 4.5 px
+        # Similarity / Rigid ...... 4.0 px
+        # Translation ............. 3.5 px
+        # Rigid_RANSAC ............ 4.0 px
+        # Translation_RANSAC ...... 3.5 px
+
         if visualize:
             try:
                 # Elegir el cálculo de inliers acorde al modelo:
                 tm = transformation_method.lower()
                 if tm == "homography":
-                    inliers_idx = compute_inliers_homography(feats0, feats1, matches01, ransac_thresh=5.0)
+                    inliers_idx = compute_inliers_homography(feats0, feats1, matches01, ransac_thresh=6.0)
                 elif tm == "affine":
-                    inliers_idx = compute_inliers_affine_ransac(feats0, feats1, matches01, ransac_thresh=3.0)
+                    inliers_idx = compute_inliers_affine_ransac(feats0, feats1, matches01, ransac_thresh=4.5)
                 elif tm == "rigid" or tm == "similarity":
-                    inliers_idx = compute_inliers_similarity_ransac(feats0, feats1, matches01, ransac_thresh=3.0)
+                    inliers_idx = compute_inliers_similarity_ransac(feats0, feats1, matches01, ransac_thresh=4.0)
                 elif tm == "translation" or tm == "translation2":
-                    inliers_idx = compute_inliers_translation_ransac(feats0, feats1, matches01, ransac_thresh=2.0)
+                    inliers_idx = compute_inliers_translation_ransac(feats0, feats1, matches01, ransac_thresh=3.5)
                 elif tm == "rigid_ransac":
-                    inliers_idx = compute_inliers_rigid_ransac(feats0, feats1, matches01, ransac_thresh=3.0)
+                    inliers_idx = compute_inliers_rigid_ransac(feats0, feats1, matches01, ransac_thresh=4.0)
                 elif tm == "translation_ransac":
-                    inliers_idx = compute_inliers_translation_ransac(feats0, feats1, matches01, ransac_thresh=2.0)
+                    inliers_idx = compute_inliers_translation_ransac(feats0, feats1, matches01, ransac_thresh=3.5)
                 else:
                     inliers_idx = None  # fallback
 

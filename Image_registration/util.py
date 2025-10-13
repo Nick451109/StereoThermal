@@ -1188,7 +1188,7 @@ def apply_translation_transformation2(feats0, feats1, matches01, imagen0, imagen
 
 
 # === [FIN TRANSFORMACIONES] ===
-def save_metrics_to_excel(xlsx_path, data, fieldnames, decimals=6):
+def save_metrics_to_excel(xlsx_path, data, fieldnames, decimals=4):
     # Redondear y formatear los valores
     formatted_data = {}
     for k, v in data.items():
